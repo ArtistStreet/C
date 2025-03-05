@@ -44,23 +44,28 @@ bool check_name(const char *name, node *current) {
 void mkdir(const char *names, file_system *fs) {
     char *name = strtok((char *)names, " ");
     while (name != NULL) {
-        node *new_node = (node *)malloc(sizeof(node)); // allocate memory for new node
-        strcpy(new_node->name, name); // set name
-        new_node->isDir = 1; // set is dir
-        new_node->parent = fs->current; // set parent
-        new_node->child = NULL;
-        new_node->next = NULL;
+        if (check_name(name, fs->current) == false) { //  
+            node *new_node = (node *)malloc(sizeof(node)); // allocate memory for new node
+            strcpy(new_node->name, name); // set name
+            new_node->isDir = 1; // set is dir
+            new_node->parent = fs->current; // set parent
+            new_node->child = NULL;
+            new_node->next = NULL;
 
-        if (fs->current->child == NULL) {
-            fs->current->child = new_node; // set child if no child exists
-        } else {
-            node *sibling = fs->current->child;
-            while (sibling->next != NULL) {
-                sibling = sibling->next; // find the last sibling
+            if (fs->current->child == NULL) {
+                fs->current->child = new_node; // set child if no child exists
+            } else {
+                node *sibling = fs->current->child;
+                while (sibling->next != NULL) {
+                    sibling = sibling->next; // find the last sibling
+                }
+                sibling->next = new_node; // add new node as the next sibling
             }
-            sibling->next = new_node; // add new node as the next sibling
+            name = strtok(NULL, " ");
         }
-        name = strtok(NULL, " ");
+        else {
+            return; 
+        }
     }
 }
 
@@ -107,13 +112,36 @@ void touch(const char *names, file_system *fs) {
 }
 
 void cd(const char *names, file_system *fs) {
-
+    if (strcmp(names, "..") == 0) {
+        if (fs->current->parent != NULL) {
+            fs->current = fs->current->parent; // move to parent
+        }
+        return; 
+    }
+    node *temp = fs->current->child; // get child of current node
+    while (temp != NULL) {
+        if (strcmp(names, temp->name) == 0) {
+            if (temp->isDir) {
+                fs->current = temp; // move to the directory;
+                return;
+            } else {
+                printf("Not a directory\n");
+                return;
+            }
+        }
+        temp = temp->next; // get next node
+    }
 }
 
 void save_node(FILE *file, node *n) {
     if (n == NULL) return;
-    fprintf(file, "%s %d\n", n->name, n->isDir);
+
+    fprintf(file, "%s %s %d\n", n->parent ? n->parent->name : "ROOT", n->name, n->isDir);
+
+    // Save all children first (recursive call)
     save_node(file, n->child);
+
+    // Save the next sibling
     save_node(file, n->next);
 }
 
@@ -127,28 +155,75 @@ void save_file_system(file_system *fs, const char *filename) {
     fclose(file);
 }
 
-node *load_node(FILE *file, node *parent) {
-    char name[100];
+node *find_node(node *root, const char *name) { // DFS
+    if (root == NULL) return NULL;
+
+    if (strcmp(root->name, name) == 0) return root; // check if name is found
+
+    node *child = find_node(root->child, name); // find in child
+    if (child != NULL) return child;
+
+    return find_node(root->next, name);
+}
+
+node *load_node(FILE *file, node *root) {
+    char name[100], parent[100];
     int isDir;
-    if (fscanf(file, "%s %d", name, &isDir) != 2) return NULL;
+    if (fscanf(file, "%s %s %d", parent, name, &isDir) != 3) return NULL;
 
     node *n = (node *)malloc(sizeof(node));
-    strcpy(n->name, name);
-    n->isDir = isDir;
-    n->parent = parent;
-    n->child = load_node(file, n);
-    n->next = load_node(file, parent);
+    strcpy(n->name, name); // set name
+    n->isDir = isDir; // set dir 
+    n->child = NULL;
+    n->next = NULL;
+
+    if (strcmp(parent, "ROOT") == 0) { // check if parent if root
+        n->parent = root;
+    } else { // find parent node
+        // printf("%s\n", n->parent->name);
+        n->parent = find_node(root, parent);
+    }
+
+    if (n->parent) { // add child or sibling
+        if (!n->parent->child) { // check if child exists
+            n->parent->child = n; // set child
+        } else {
+            node *sibling = n->parent->child; // get child
+            while (sibling->next) { // find the last sibling
+                sibling = sibling->next;
+            }
+            sibling->next = n; // set next sibling
+        }
+    }
     return n;
 }
 
 file_system *load_file_system(const char *filename) {
     FILE *file = fopen(filename, "r");
-    if (file == NULL) {
+    if (file == NULL) { // check if file exists
         perror("Failed to open file");
         return init();
     }
+    fseek(file, 0, SEEK_END); // move to the end of the file
+    if (ftell(file) == 0) { // check if file is empty
+        fclose(file);
+        return init();
+    }
+    fseek(file, 0, SEEK_SET);
     file_system *fs = (file_system *)malloc(sizeof(file_system));
-    fs->root = load_node(file, NULL);
+    fs->root = NULL;
+
+    node *last_node = NULL;
+    while (!feof(file)) {
+        node *n = load_node(file, fs->root);
+        if (!n) break;
+
+        if (!fs->root) { // set root node
+            fs->root = n;
+        }
+        last_node = n;
+    }
+
     fs->current = fs->root;
     fclose(file);
     return fs;
@@ -172,6 +247,9 @@ int main() {
             touch(names, fs);
         } else if (strcmp(choice, "cd") == 0) {
             scanf("%s", names);
+            if (strcmp(names, "\t") == 0) {
+                ls(fs);
+            }
             cd(names, fs);
         } else if (strcmp(choice, "exit") == 0) {
             save_file_system(fs, "filesystem.txt");
