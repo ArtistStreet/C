@@ -11,4 +11,4 @@ run: my_program
 	./my_program
 
 clean: 
-	rm -f my_program *.o
+	rm -f my_program *.o filesystem.txt

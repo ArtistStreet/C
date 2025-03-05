@@ -19,7 +19,7 @@ typedef struct file_system {
 file_system *init() {
     file_system *fs = (file_system *)malloc(sizeof(file_system)); // allocate memory for file_system
     node *root = (node *)malloc(sizeof(node)); // allocate memory for root node
-    strcpy(root->name, "/"); // set root name to "/"
+    strcpy(root->name, "~/"); // set root name to "/"
     root->isDir = 1; // set root is directory
     root->parent = NULL;
     root->child = NULL;
@@ -106,8 +106,56 @@ void touch(const char *names, file_system *fs) {
     }
 }
 
+void cd(const char *names, file_system *fs) {
+
+}
+
+void save_node(FILE *file, node *n) {
+    if (n == NULL) return;
+    fprintf(file, "%s %d\n", n->name, n->isDir);
+    save_node(file, n->child);
+    save_node(file, n->next);
+}
+
+void save_file_system(file_system *fs, const char *filename) {
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Failed to open file");
+        return;
+    }
+    save_node(file, fs->root);
+    fclose(file);
+}
+
+node *load_node(FILE *file, node *parent) {
+    char name[100];
+    int isDir;
+    if (fscanf(file, "%s %d", name, &isDir) != 2) return NULL;
+
+    node *n = (node *)malloc(sizeof(node));
+    strcpy(n->name, name);
+    n->isDir = isDir;
+    n->parent = parent;
+    n->child = load_node(file, n);
+    n->next = load_node(file, parent);
+    return n;
+}
+
+file_system *load_file_system(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Failed to open file");
+        return init();
+    }
+    file_system *fs = (file_system *)malloc(sizeof(file_system));
+    fs->root = load_node(file, NULL);
+    fs->current = fs->root;
+    fclose(file);
+    return fs;
+}
+
 int main() {
-    file_system *fs = init(); 
+    file_system *fs = load_file_system("filesystem.txt"); 
     printf("Root: %s\n", fs->root->name);
     char choice[100], names[100];
 
@@ -122,7 +170,15 @@ int main() {
         } else if (strcmp(choice, "touch") == 0) {
             scanf(" %[^\n]", names); // read the entire line for multiple file names
             touch(names, fs);
-        } 
+        } else if (strcmp(choice, "cd") == 0) {
+            scanf("%s", names);
+            cd(names, fs);
+        } else if (strcmp(choice, "exit") == 0) {
+            save_file_system(fs, "filesystem.txt");
+            break;
+        } else if (strcmp(choice, "pwd") == 0) {
+            printf("Current: %s\n", fs->current->name);
+        }
         
         else {
             printf("%s: command not found\n", choice);
