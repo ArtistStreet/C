@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <termios.h>
 
 typedef struct node {
     char name[100]; // fix variable name
@@ -19,7 +20,7 @@ typedef struct file_system {
 file_system *init() {
     file_system *fs = (file_system *)malloc(sizeof(file_system)); // allocate memory for file_system
     node *root = (node *)malloc(sizeof(node)); // allocate memory for root node
-    strcpy(root->name, "~/"); // set root name to "/"
+    strcpy(root->name, "~"); // set root name to "/"
     root->isDir = 1; // set root is directory
     root->parent = NULL;
     root->child = NULL;
@@ -112,25 +113,60 @@ void touch(const char *names, file_system *fs) {
 }
 
 void cd(const char *names, file_system *fs) {
-    if (strcmp(names, "..") == 0) {
-        if (fs->current->parent != NULL) {
-            fs->current = fs->current->parent; // move to parent
-        }
-        return; 
+    if (strcmp(names, "\t") == 0) {
+        ls(fs);
+        return;
     }
-    node *temp = fs->current->child; // get child of current node
-    while (temp != NULL) {
-        if (strcmp(names, temp->name) == 0) {
-            if (temp->isDir) {
-                fs->current = temp; // move to the directory;
-                return;
-            } else {
-                printf("Not a directory\n");
+
+    if (strcmp(names, "~") == 0) {
+        fs->current = fs->root; // move to root
+        return;
+    }
+
+    char path[100];
+    strcpy(path, names);
+    char *token = strtok(path, "/"); // tokenize the path by "/"
+    while (token != NULL) {
+        if (strcmp(token, "..") == 0) {
+            if (fs->current->parent != NULL) {
+                fs->current = fs->current->parent; // move to parent
+            }
+        } else {
+            node *temp = fs->current->child; // get child of current node
+            bool found = false;
+            while (temp != NULL) {
+                if (strcmp(token, temp->name) == 0) {
+                    if (temp->isDir) {
+                        fs->current = temp; // move to the directory;
+                        found = true;
+                        break;
+                    } else {
+                        printf("Not a directory\n");
+                        return;
+                    }
+                }
+                temp = temp->next; // get next node
+            }
+            if (found == false) {
+                printf("Directory not found\n");
                 return;
             }
         }
-        temp = temp->next; // get next node
+        token = strtok(NULL, "/"); // get next token
     }
+}
+
+void pwd(file_system *fs) {
+    node *current = fs->current;
+    char path[1000] = "";
+    while (current != fs->root) {
+        char temp[100];
+        sprintf(temp, "/%s", current->name); // add "/" to the path
+        strcat(temp, path); // add path to the temp
+        strcpy(path, temp); // copy temp to path
+        current = current->parent;
+    }
+    printf("~%s\n", path);
 }
 
 void save_node(FILE *file, node *n) {
@@ -158,12 +194,12 @@ void save_file_system(file_system *fs, const char *filename) {
 node *find_node(node *root, const char *name) { // DFS
     if (root == NULL) return NULL;
 
-    if (strcmp(root->name, name) == 0) return root; // check if name is found
+    if (strcmp(root->name, name) == 0) return root; // return location of root node
 
     node *child = find_node(root->child, name); // find in child
     if (child != NULL) return child;
 
-    return find_node(root->next, name);
+    return find_node(root->next, name); // find in sibling
 }
 
 node *load_node(FILE *file, node *root) {
@@ -180,22 +216,72 @@ node *load_node(FILE *file, node *root) {
     if (strcmp(parent, "ROOT") == 0) { // check if parent if root
         n->parent = root;
     } else { // find parent node
-        // printf("%s\n", n->parent->name);
         n->parent = find_node(root, parent);
+        // printf("%s\n", root);
     }
 
-    if (n->parent) { // add child or sibling
+    if (n->parent != NULL) { // add child or sibling
         if (!n->parent->child) { // check if child exists
             n->parent->child = n; // set child
         } else {
-            node *sibling = n->parent->child; // get child
+            node *sibling = n->parent->child; // get first child
             while (sibling->next) { // find the last sibling
                 sibling = sibling->next;
             }
-            sibling->next = n; // set next sibling
+            // printf("%s\n", sibling->name);
+            sibling->next = n; // set next sibling to the end of the list 
         }
     }
     return n;
+}
+
+void REMOVE(const char *names, file_system *fs, const int check) {
+    char *name = strtok((char *)names, " ");
+    while (name != NULL) {
+        node *prev = NULL; // previous node
+        node *temp = fs->current->child; // get child of current node
+    
+        while (temp != NULL) {
+            if (check == 0) {
+                if (strcmp(temp->name, name) == 0 && temp->isDir == 0) { // check if name matches and is a file
+                    if (prev == NULL) {
+                        fs->current->child = temp->next; // remove the first child
+                    } else {
+                        prev->next = temp->next; // remove the node from the list
+                    }
+                    free(temp); // free the memory
+                    break;
+                } else {
+                    printf("rm: cannot remove '%s': Is a directory\n", name);
+                    break; 
+                }
+            } 
+            else if (check == 1) {
+                if (strcmp(temp->name, name) == 0 && temp->isDir == 1) { // check if name matches and is a file
+                    if (prev == NULL) {
+                        fs->current->child = temp->next; // remove the first child
+                    } else {
+                        prev->next = temp->next; // remove the node from the list
+                    }
+                    free(temp); // free the memory
+                    break;
+                } else {
+                    printf("rmdir: failed to remove '%s': Not a directory\n", name);
+                }
+            }
+            prev = temp; 
+            temp = temp->next; // move to the next node
+        }
+        name = strtok(NULL, " "); // get next name
+    }
+}
+
+void rm(const char *names, file_system *fs, const int isDir) {
+    REMOVE(names, fs, 0);
+}
+
+void rmdir(const char *names, file_system *fs, const int isDir) {
+    REMOVE(names, fs, 1);
 }
 
 file_system *load_file_system(const char *filename) {
@@ -214,7 +300,7 @@ file_system *load_file_system(const char *filename) {
     fs->root = NULL;
 
     node *last_node = NULL;
-    while (!feof(file)) {
+    while (!feof(file)) { // read file 
         node *n = load_node(file, fs->root);
         if (!n) break;
 
@@ -229,10 +315,26 @@ file_system *load_file_system(const char *filename) {
     return fs;
 }
 
+void enable_raw_mode() {
+    struct termios term;
+    tcgetattr(0, &term);
+    term.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(0, TCSANOW, &term);
+}
+
+void disable_raw_mode() {
+    struct termios term;
+    tcgetattr(0, &term);
+    term.c_lflag |= (ICANON | ECHO);
+    tcsetattr(0, TCSANOW, &term);
+}
+
 int main() {
     file_system *fs = load_file_system("filesystem.txt"); 
     printf("Root: %s\n", fs->root->name);
     char choice[100], names[100];
+
+    enable_raw_mode(); // enable raw mode to handle tab key immediately
 
     while (1) {
         scanf("%s", choice);
@@ -246,23 +348,33 @@ int main() {
             scanf(" %[^\n]", names); // read the entire line for multiple file names
             touch(names, fs);
         } else if (strcmp(choice, "cd") == 0) {
-            scanf("%s", names);
-            if (strcmp(names, "\t") == 0) {
-                ls(fs);
+            int c = getchar();
+            if (c == '\t') {
+                ls(fs); // handle tab key immediately
+                continue;
+            } else {
+                ungetc(c, stdin); // put the character back to stdin
             }
+            scanf("%s", names);
             cd(names, fs);
         } else if (strcmp(choice, "exit") == 0) {
             save_file_system(fs, "filesystem.txt");
             break;
         } else if (strcmp(choice, "pwd") == 0) {
-            printf("Current: %s\n", fs->current->name);
-        }
-        
-        else {
+            pwd(fs);
+        } else if (strcmp(choice, "rm") == 0) {
+            scanf(" %[^\n]", names); // read the entire line for multiple file names
+            rm(names, fs, 0);
+        } else if (strcmp(choice, "rmdir") == 0) {
+            scanf(" %[^\n]", names); // read the entire line for multiple file names
+            rmdir(names, fs, 1);
+        } else {
             printf("%s: command not found\n", choice);
+            disable_raw_mode(); // disable raw mode before exiting
             return 1;
         }
     }
 
+    disable_raw_mode(); // disable raw mode before exiting
     return 0; 
 }
