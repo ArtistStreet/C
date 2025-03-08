@@ -1,3 +1,11 @@
 ROOT ~ 1
+~ l 1
+~ y 1
 ~ b 1
-~ c 1
+b a 1
+a a 0
+~ u 1
+~ i 1
+~ lyy 1
+~ lyyy 1
+~ eeee 1
