@@ -7,6 +7,11 @@
 #include <stdbool.h>
 #include <termios.h>
 #include <unistd.h>
+#include <stdint.h>
+
+extern char *save_file_with_similar_name[200], save_tab[20];
+extern char choice[100], buffer[100];
+extern uint8_t loop, cnt_tab, i;     
 
 typedef struct node {
     char name[100]; // fix variable name
@@ -23,11 +28,9 @@ typedef struct file_system {
 
 file_system *init();
 
-__int32_t get_hash(char *str, __int8_t len);
+int32_t hash_for_input(char *str);
 
-__int32_t hash_for_input(char *str);
-
-__int32_t hash_for_file(char *str, __int8_t len);
+int32_t hash_for_file(char *str, int8_t len);
 
 bool check_name(const char *name, node *current); 
 
@@ -37,17 +40,17 @@ void touch(const char *names, file_system *fs);
 
 void REMOVE(const char *names, file_system *fs, const int check); 
 
-void ls(file_system *fs); 
+void cd(const char *names, file_system *fs, bool print_pwd);
+
+char *handle_tab(file_system *fs, char *sub, uint8_t cnt_tab, uint8_t *loop);
+
+void ls(file_system *fs, const char *path); 
 
 void pwd(file_system *fs);
 
-void save_node(FILE *file, node *n);
-
-void save_file_system(file_system *fs, const char *filename);
-
 node *find_node(node *root, const char *name);
 
-node *load_node(FILE *file, node *root);
+void save_file_system(file_system *fs, const char *filename);
 
 void save_current_cursor(file_system *fs);
 
@@ -58,5 +61,9 @@ file_system *load_file_system(const char *filename);
 void enableRawMode(struct termios *oldt);
 
 void disableRawMode(struct termios *oldt);
+
+void mv();
+
+void help();
 
 #endif // LIB_H

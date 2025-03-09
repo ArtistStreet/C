@@ -4,6 +4,7 @@
         "stdbool.h": "c",
         "unistd.h": "c",
         "variant": "c",
-        "lib.h": "c"
+        "lib.h": "c",
+        "cstdlib": "c"
     }
 }

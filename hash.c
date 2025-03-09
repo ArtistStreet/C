@@ -6,8 +6,8 @@
 int A[MX], p[MX];
 char a[100][100], b[100][100]; 
 
-__int32_t get_hash(char *str, __int8_t len) {
-    __int32_t res = 0;
+int32_t get_hash(char *str, int8_t len) {
+    int32_t res = 0;
 
     for (size_t i = 0; i < len; i++) {  
         if (str[i] >= 'a' && str[i] <= 'z') {
@@ -18,11 +18,11 @@ __int32_t get_hash(char *str, __int8_t len) {
     return res;
 }
 
-__int32_t hash_for_input(char *str) {
-    __int8_t len = strlen(str);
+int32_t hash_for_input(char *str) {
+    int8_t len = strlen(str);
     return get_hash(str, len);
 }
 
-__int32_t hash_for_file(char *str, __int8_t len) {
+int32_t hash_for_file(char *str, int8_t len) {
     return get_hash(str, len);
 } 
