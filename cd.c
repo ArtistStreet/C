@@ -12,6 +12,7 @@ uint8_t count(const char *str) {
 }
 
 void cd(const char *names, file_system *fs, bool print_pwd) {
+    // 1 print, 0 no
     char *token = NULL;
     char path[100], first_char = names[0];
     
@@ -41,80 +42,21 @@ void cd(const char *names, file_system *fs, bool print_pwd) {
                 fs->current = fs->current->parent; // move to parent
             }
         } else {
-            node *temp = fs->current->child; // get child of current node
-            bool found = false;
-            while (temp != NULL) {
-                if (strcmp(token, temp->name) == 0) {
-                    if (temp->isDir) {
-                        fs->current = temp; // move to the directory;
-                        found = true;
-                        break;
-                    } else {
-                        printf("Not a directory\n");
-                        return;
-                    }
+            node *target = find_node(fs->current, token);
+            printf("%s %s\n", fs->current->name, token);
+            if (target != NULL) {
+                if (target->isDir) {
+                    fs->current = target; 
+                } else {
+                    printf("Not a directory\n");
                 }
-                temp = temp->next; // get next node
-            }
-            if (found == false && print_pwd == true) {
+            } else {
                 printf("Directory not found\n");
-                return;
             }
         }
         token = strtok(NULL, "/"); // get next token
     }
+    // printf("1");
     if (print_pwd) pwd(fs);
 }
 
-char *handle_tab(file_system *fs, char *sub, uint8_t cnt_tab, uint8_t *loop) {
-    node *current = fs->current->child;
-    char *result = NULL;
-    uint8_t cnt = 0;
-
-    while (current != NULL) {
-        if (hash_for_input(sub) == hash_for_file(current->name, strlen(sub)) && current->isDir == 1) {
-            save_file_with_similar_name[cnt] = current->name;
-            (cnt)++;
-        }
-        current = current->next;
-    }
-
-    if (cnt == 1) {
-        result = strdup(save_file_with_similar_name[0]);
-        return result;
-    } else if (cnt > 1) {
-        if (cnt_tab == 1) {
-            printf("\n");
-            for (size_t i = 0; i < cnt; i++) {
-                printf("%s ", save_file_with_similar_name[i]);
-            }
-            printf("\033[A"); // Move cursor up
-            printf("\r");
-            printf("cd %s", save_file_with_similar_name[0]);
-        } else if (cnt_tab > 1) {
-            printf("\r\033[K"); 
-            printf("cd %s", save_file_with_similar_name[*loop % cnt]);
-            fflush(stdout);  
-            
-            printf("\033[s");  // save current location        
-            printf("\n");
-
-            for (size_t i = 0; i < cnt; i++) {
-                if (i == *loop % cnt) {
-                    printf("\033[1;32m%s\033[0m ", save_file_with_similar_name[i]); // In màu xanh thư mục được chọn
-                    memset(save_tab + 3, 0x0, sizeof(save_tab) - 3);
-                    strcat(save_tab, save_file_with_similar_name[i]);
-                } else {
-                    printf("%s ", save_file_with_similar_name[i]);
-                }
-            }
-            
-            printf("\033[K");
-            printf("\033[u"); // restore cursor
-            fflush(stdout);
-            
-            (*loop)++;
-        }
-    }
-    return result ? result : NULL;
-}

@@ -17,48 +17,34 @@ int main() {
     struct termios oldt;
     enableRawMode(&oldt);
     
-    save_tab[0] = 'c', save_tab[1] = 'd', save_tab[2] = ' ';
+    // save_tab[0] = 'c', save_tab[1] = 'd', save_tab[2] = ' ';
     memset(buffer, 0x0, sizeof(buffer));
 
     while (1) {
         char c = getchar();
         char *tok;
         bool print_pwd = true;
-
-        // printf("%c\n", buffer[i]);
-        if (i >= 3 && (strncmp(buffer, "cd ", 3) == 0 || strncmp(buffer, "mv ", 3) == 0) && c == '\t' && buffer[i - 1] == '/') {
-            printf("\n");
-            strcpy(choice, buffer);
-            tok = strtok(choice, " ");
-            tok = strtok(NULL, " ");
-            print_pwd = false;
-            // printf("%s\n", buffer);
-            // printf("%s\n", choice);
-            cd(tok, fs, print_pwd);
-            ls(fs, tok);
-            printf("\033[A");
-            // cnt_tab++;
-            // char *sub = buffer + 3;
-            // char *completion = handle_tab(fs, sub, cnt_tab, &loop);
-            // printf("%s\n", completion);
-            memset(buffer, 0x0, sizeof(buffer));
-            i = 0;
-            continue;
-        } else if (i > 3 && (strncmp(buffer, "cd ", 3) == 0 || strncmp(buffer, "mv ", 3) == 0) && c == '\t') {
-            cnt_tab++;
-            char *sub = buffer + 3;
-            char *completion = handle_tab(fs, sub, cnt_tab, &loop);
-        
-            if (completion != NULL) { 
-                snprintf(buffer, sizeof(buffer), "cd %s", completion); // set buffer to completion
-                i = strlen(buffer);
-        
-                printf("\r%s", buffer);
-                fflush(stdout);
-
-                free(completion);
+        // TODO: handel tab
+        if (c == '\t') {
+            // strcpy(choice, buffer + 3);
+            char *string = strchr(buffer, ' ');
+            string += 1;
+            bool check_string_end = false;
+            char *before_slash;
+            // printf("%s\n", sub);
+            char *res = check_string(string, &check_string_end, &before_slash);
+            if (check_string_end == true) {
+                ls(fs, res);
+            } else {
+                cnt_tab++;
+                // handle_tab(fs, res, cnt_tab, &loop);
+                ls(fs, before_slash);
+                for (size_t i = 0; i < 10; i++) {
+                    printf("%s ", save_file_with_similar_name[i]);
+                }
             }
-        
+            // printf("\n%s\n", space + 1);
+            // memset
             continue;
         } else if (c == 127) { // handle backspace
             if (i > 0) {
@@ -70,7 +56,7 @@ int main() {
         } else {
             if (c == '\n') {
                 buffer[i] = '\0';
-                printf("\n"); // print newline
+                printf("\n");
                 if (i > 0)
                     strcpy(choice, buffer);
                 i = 0;

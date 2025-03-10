@@ -3,6 +3,7 @@ ROOT ~ 1
 ~ y 1
 ~ b 1
 b a 1
+a hello 1
 b aa 1
 b aaa 1
 ~ u 1

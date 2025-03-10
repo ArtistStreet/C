@@ -3,7 +3,7 @@ CFLAGS = -Wall
 # LDFLAGS = -lreadline
 SRC = dir.c hash.c mkdir.c mv.c system.c \
 remove.c pwd.c ls.c touch.c help.c cd.c \
-globals.c
+globals.c handle_tab.c
 
 OBJ = dir.o
 
