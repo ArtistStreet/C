@@ -44,7 +44,7 @@ void REMOVE(const char *names, file_system *fs, const int check);
 
 void cd(const char *names, file_system *fs, bool print_pwd);
 
-char *handle_tab(file_system *fs, char *res, char *before_slash,uint8_t cnt_tab, uint8_t *loop);
+char *handle_tab(file_system *fs, char *res, char *before_slash, uint8_t cnt_tab, uint8_t *loop);
 
 void ls(file_system *fs, const char *path); 
 

@@ -2,17 +2,13 @@ commit_message ?= "Update project"
 
 .PHONY: add commit push all
 
-# Thêm tất cả file vào git
 add:
 	git add .
 
-# Commit với thông điệp tùy chỉnh
 commit:
 	git commit -m "$(commit_message)"
 
-# Push lên GitHub
 push:
 	git push origin master
 
-# Chạy tất cả các bước trên
 all: add commit push
