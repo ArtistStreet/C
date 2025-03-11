@@ -19,7 +19,6 @@ void ls_path(file_system *fs, const char *path) {
         } else {
             printf("\033[1;35m%s\033[0m ", current->name);
         }
-        save_file_with_similar_name[i++] = current->name;
         current = current->next;
     }
 

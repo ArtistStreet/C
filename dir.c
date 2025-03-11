@@ -25,26 +25,35 @@ int main() {
         char *tok;
         bool print_pwd = true;
         // TODO: handel tab
+        // FIXME: fix auto complete when press tab 
         if (c == '\t') {
             // strcpy(choice, buffer + 3);
             char *string = strchr(buffer, ' ');
-            string += 1;
+            if (string) {
+                string += 1;
+            }
+
+            // printf("%ld\n", strlen(string));
             bool check_string_end = false;
-            char *before_slash;
-            // printf("%s\n", sub);
-            char *res = check_string(string, &check_string_end, &before_slash);
-            if (check_string_end == true) {
+            char *before_slash = NULL, *res = NULL; // directory before slash
+            res = check_string(string, &check_string_end, &before_slash);
+            if (check_string_end == true) { // if string end with /
+                // printf("12");
                 ls(fs, res);
             } else {
+                printf("%s\n", before_slash);
                 cnt_tab++;
-                // handle_tab(fs, res, cnt_tab, &loop);
-                ls(fs, before_slash);
-                for (size_t i = 0; i < 10; i++) {
-                    printf("%s ", save_file_with_similar_name[i]);
-                }
+                handle_tab(fs, res, before_slash, cnt_tab, &loop);
+                // ls(fs, before_slash);
+                // for (size_t i = 0; i < 10; i++) {
+                //     printf("%s ", save_file_with_similar_name[i]);
+                // }
             }
-            // printf("\n%s\n", space + 1);
-            // memset
+            // for (size_t j = 0; j < i; j++) {
+            //     printf("%c", buffer[j]);
+            // }
+            // printf("\n%d\n", i);
+            // memset(buffer, 0x0, sizeof(buffer));
             continue;
         } else if (c == 127) { // handle backspace
             if (i > 0) {
