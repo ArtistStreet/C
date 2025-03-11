@@ -12,7 +12,7 @@ commit:
 
 # Push lên GitHub
 push:
-	git push origin main
+	git push origin master
 
 # Chạy tất cả các bước trên
 all: add commit push
