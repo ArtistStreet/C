@@ -32,6 +32,7 @@ void cd(const char *names, file_system *fs, bool print_pwd) {
         for (uint8_t i = 0; i < temp; i++) {
             fs->current = fs->current->parent;
         }
+        pwd(fs);
         return; 
     }
 

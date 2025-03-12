@@ -5,7 +5,7 @@ char *check_string(char *string, bool *check_string_end, char **before_slash) {
         return NULL;
     }
     // printf("%c\n", string[strlen(string) - 1]);
-    char *last_slash, *split;
+    char *last_slash;
     
     if (string[strlen(string) - 1] == '/') {  // if end with '/'
         string[strlen(string) - 1] = '\0'; 
@@ -61,7 +61,6 @@ pair *path(file_system *fs, const char *path, uint8_t *cnt) {
     }
 
     current = target->child;
-    int index = 0;
     i = 0;
     while (current != NULL) {
         list[i].first = strdup(current->name);
@@ -81,23 +80,38 @@ void free_memory() {
 char *handle_tab(file_system *fs, char *res, char *before_slash, uint8_t cnt_tab, uint8_t *loop) {
     node *current = fs->current->child;
     char *result = NULL;
-    uint8_t cnt = 0;
-    printf("123");
+    uint8_t cnt = 0, count = 0;
+    // printf("123");
     pair *list = path(fs, before_slash, &cnt);
-    if (cnt == 1) {
-        return list[0].first;
-        // return strdup(list[0].first);
-    } else if (cnt_tab == 1) {
+    pair *l = (pair *)malloc(100 * sizeof(pair));
+    if (cnt_tab == 1) {
         printf("\n");
+        uint8_t index = 0;
         for (size_t i = 0; i < cnt; i++) {
             if (hash_for_input(res) == hash_for_file(list[i].first, strlen(res))) {
-                if (list[i].second == 1) {
-                    printf("\033[1;32m%s\033[0m ", list[i].first);
-                } else {
-                    printf("\033[1;35m%s\033[0m ", list[i].first);
-                }
+                l[index].first = strdup(list[i].first); 
+                l[index].second = list[i].second; 
+                // printf("%s ", l[index].first);
+                index++; 
             }
         }
+
+        if (index == 1) {
+            printf("%s\n", l[0].first);
+            return strdup(l[0].first);
+        }
+
+        for (size_t i = 0; i < index; i++) {
+            if (l[i].first != NULL) {
+                printf("%d", l[i].second);
+            }
+        }
+
+
+        // if () {
+        //     printf("%s\n", list[0].first);
+        //     return strdup(list[0].first);
+        // }
     } else {
         printf("\r\033[K");
         printf("\033[s");

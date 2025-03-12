@@ -11,7 +11,6 @@ void ls_path(file_system *fs, const char *path) {
     }
 
     node *current = target->child; 
-    int i = 0;
 
     while (current != NULL) {
         if (current->isDir) {
