@@ -43,7 +43,7 @@ void cd(const char *names, file_system *fs, bool print_pwd) {
             }
         } else {
             node *target = find_node(fs->current, token);
-            printf("%s %s\n", fs->current->name, token);
+            // printf("%s %s\n", fs->current->name, token);
             if (target != NULL) {
                 if (target->isDir) {
                     fs->current = target; 

@@ -26,10 +26,15 @@ char *check_string(char *string, bool *check_string_end, char **before_slash) {
     return string;
 }
 
-char **path(file_system *fs, const char *path, uint8_t *cnt) {
+typedef struct {
+    char *first;
+    uint8_t second;
+} pair;
+
+pair *path(file_system *fs, const char *path, uint8_t *cnt) {
     char name[100];
     strcpy(name, path);
-    printf("%s\n", name);
+    // printf("%s\n", name);
     node *target = find_node(fs->root, (strcmp(fs->root->name, path) == 0) ? path : name);
 
     if (!target || !target->isDir) {
@@ -49,7 +54,7 @@ char **path(file_system *fs, const char *path, uint8_t *cnt) {
         return NULL;
     }
 
-    char **list = (char **)malloc(i * sizeof(char *));
+    pair *list = (pair *)malloc(i * sizeof(pair));
     if (!list) {
         printf("Memory allcation failed\n");
         return NULL;
@@ -57,57 +62,58 @@ char **path(file_system *fs, const char *path, uint8_t *cnt) {
 
     current = target->child;
     int index = 0;
+    i = 0;
     while (current != NULL) {
-        list[i] = strdup(current->name);
+        list[i].first = strdup(current->name);
+        list[i].second = (current->isDir == 0) ? 0 : 1;
+        // printf("%s %ld\n", list[i].first, list[i].second);
         i++;
         current = current->next;
     }
-
     *cnt = i;
     return list;
+}
+
+void free_memory() {
+
 }
 
 char *handle_tab(file_system *fs, char *res, char *before_slash, uint8_t cnt_tab, uint8_t *loop) {
     node *current = fs->current->child;
     char *result = NULL;
     uint8_t cnt = 0;
-    printf("%s\n", before_slash);
-    char **list = path(fs, before_slash, &cnt);
-    printf("%d\n", cnt);
-    // for (size_t i = 0; i < cnt; i++) {
-    //     printf("%s ", list[i]);
-    // }
-    // if (cnt == 1) { // if only 1 file exists return itself
-    //     // printf(save_file_with_similar_name[0]);   
-    //     result = strdup(save_file_with_similar_name[0]);
-    //     return result;
-    // } else if (cnt > 1) {
-    //     if (cnt_tab > 1) {
-    //         printf("\r\033[K"); 
-    //         printf("cd %s", save_file_with_similar_name[*loop % cnt]);
-    //         fflush(stdout);  
-            
-    //         printf("\033[s");  // save current location        
-    //         printf("\n");
+    printf("123");
+    pair *list = path(fs, before_slash, &cnt);
+    if (cnt == 1) {
+        return list[0].first;
+        // return strdup(list[0].first);
+    } else if (cnt_tab == 1) {
+        printf("\n");
+        for (size_t i = 0; i < cnt; i++) {
+            if (hash_for_input(res) == hash_for_file(list[i].first, strlen(res))) {
+                if (list[i].second == 1) {
+                    printf("\033[1;32m%s\033[0m ", list[i].first);
+                } else {
+                    printf("\033[1;35m%s\033[0m ", list[i].first);
+                }
+            }
+        }
+    } else {
+        printf("\r\033[K");
+        printf("\033[s");
+        for (size_t i = 0; i < cnt; i++) {
+            if (i == *loop % cnt) {
+                printf("\033[1;35m%s\033[0m ", list[i].first);
+                result = strdup(list[i].first);
+            } else {
+                printf("%s ", list[i].first);
+            }
+        }
+        printf("\033[K");
+        printf("\033[u");
+        fflush(stdout);
+        (*loop)++;
+    }
 
-    //         for (size_t i = 0; i < cnt; i++) {
-    //             if (i == *loop % cnt) {
-    //                 printf("\033[1;32m%s\033[0m ", save_file_with_similar_name[i]); // In màu xanh thư mục được chọn
-    //                 memset(save_tab + 3, 0x0, sizeof(save_tab) - 3);
-    //                 strcat(save_tab, save_file_with_similar_name[i]);
-    //             } else {
-    //                 printf("%s ", save_file_with_similar_name[i]);
-    //             }
-    //         }
-            
-    //         printf("\033[K");
-    //         printf("\033[u"); // restore cursor
-    //         fflush(stdout);
-            
-    //         (*loop)++;
-    //     }
-    // }
-    // }
-    // }
-    // return result ? result : NULL;
+    return result ? result : NULL;
 }
