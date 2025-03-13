@@ -28,18 +28,17 @@ int main() {
         // TODO: handel tab
         // FIXME: fix auto complete when press tab 
         if (c == '\t') {
+            bool check_string_end = false;
             if (cnt_tab < 1) {
                 string = strchr(buffer, ' ');
                 if (string) {
                     string += 1;
                 }
-            }
-            bool check_string_end = false;
-            if (cnt_tab < 1) {
                 res = check_string(string, &check_string_end, &before_slash);
             }
 
             if (check_string_end == true) { // if string end with /
+                printf("\n");
                 ls(fs, res);
             } else {
                 cnt_tab++;
@@ -53,8 +52,11 @@ int main() {
 
                     strcpy(before_slash, "~");
                 }
-                save_current_location = handle_tab(fs, res, before_slash, cnt_tab, &loop);
+                // printf("%s\n", buffer);
+                save_current_location = handle_tab(fs, res, before_slash, cnt_tab, &loop, buffer, &i);
+                // printf("%d\n", i);
             }
+
             continue;
         } else if (c == 127) { // handle backspace
             if (i > 0) {
@@ -82,7 +84,11 @@ int main() {
                 if (i > 0)
                     strcpy(choice, buffer);
                 tok = strtok(choice, " ");
-                // printf("%s\n", buffer);
+                if (tok == NULL) {
+                    continue;
+                }
+                // printf("%s\n", tok);
+                // printf("123");
                 i = 0;
                 cnt_tab = 0;
                 loop = 0;

@@ -28,10 +28,10 @@ char *check_string(char *string, bool *check_string_end, char **before_slash) {
 
 typedef struct {
     char *first;
-    uint8_t second;
+    int8_t second;
 } pair;
 
-pair *path(file_system *fs, const char *path, uint8_t *cnt) {
+pair *path(file_system *fs, const char *path, int8_t *cnt) {
     char name[100];
     strcpy(name, path);
     // printf("%s\n", name);
@@ -73,20 +73,23 @@ pair *path(file_system *fs, const char *path, uint8_t *cnt) {
     return list;
 }
 
-void free_memory() {
-
+void free_memory(pair *list, int8_t cnt) { // free memory
+    for (int8_t i = 0; i < cnt; i++) {
+        free(list[i].first);
+    }
+    free(list);
 }
 
-char *handle_tab(file_system *fs, char *res, char *before_slash, uint8_t cnt_tab, uint8_t *loop) {
+char *handle_tab(file_system *fs, char *res, char *before_slash, int8_t cnt_tab, int8_t *loop, char buffer[100], int8_t *current_location) {
     node *current = fs->current->child;
     char *result = NULL;
-    uint8_t cnt = 0, count = 0;
-    // printf("123");
+    int8_t cnt = 0, count = 0;
+    // printf("%s\n", buffer);
     pair *list = path(fs, before_slash, &cnt);
     pair *l = (pair *)malloc(100 * sizeof(pair));
+
     if (cnt_tab == 1) {
-        printf("\n");
-        uint8_t index = 0;
+        int8_t index = 0;
         for (size_t i = 0; i < cnt; i++) {
             if (hash_for_input(res) == hash_for_file(list[i].first, strlen(res))) {
                 l[index].first = strdup(list[i].first); 
@@ -96,15 +99,30 @@ char *handle_tab(file_system *fs, char *res, char *before_slash, uint8_t cnt_tab
             }
         }
 
-        if (index == 1) {
-            printf("%s\n", l[0].first);
+        if (index == 1) { // return itself
+            // printf("%d\n", current_location);
+            for (int i = *current_location - 1; i >= 0; i--) {
+                printf("%c ", buffer[i]);
+                if (buffer[i] != ' ' && buffer[i] != '/') {
+                    // printf("1");
+                    buffer[i] = '\0'; 
+                } else {
+                    break;
+                }
+            }
+            // printf("%s\n", buffer);
+            strcat(buffer, l[0].first);
+            printf("\r\033[K%s", buffer); 
+            // *current_location = strlen(buffer);
+            // printf("%d\n", current_location);
+            free_memory(list, cnt);
             return strdup(l[0].first);
         }
 
+        printf("\n");
+        // printf("%d\n", index);
         for (size_t i = 0; i < index; i++) {
-            if (l[i].first != NULL) {
-                printf("%d", l[i].second);
-            }
+            printf("%s ", l[i].first);
         }
 
 
@@ -128,6 +146,8 @@ char *handle_tab(file_system *fs, char *res, char *before_slash, uint8_t cnt_tab
         fflush(stdout);
         (*loop)++;
     }
+    // *current_location = strlen(result);
+    // printf("%d\n", current_location);
 
     return result ? result : NULL;
 }

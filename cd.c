@@ -12,8 +12,9 @@ uint8_t count(const char *str) {
 }
 
 void cd(const char *names, file_system *fs, bool print_pwd) {
-    // 1 print, 0 no
+    // 1 print, 0 dot't
     char *token = NULL;
+    printf("%s\n", names);
     char path[100], first_char = names[0];
     
     if (strcmp(names, "~") == 0 && strlen(names) == 1) {
