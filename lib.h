@@ -34,7 +34,7 @@ int32_t hash_for_file(char *str, int8_t len);
 
 bool check_name(const char *name, node *current); 
 
-char *check_string(char *string, bool *check_string_end, char **before_slash);
+char *check_string(char *string);
 
 void mkdir(const char *names, file_system *fs); 
 
@@ -45,6 +45,8 @@ void REMOVE(const char *names, file_system *fs, const int check);
 void cd(const char *names, file_system *fs, bool print_pwd);
 
 char *handle_tab(file_system *fs, char *res, char *before_slash, int8_t cnt_tab, int8_t *loop, char buffer[100], int8_t *current_location);
+
+void ls_path(file_system *fs, const char *path);
 
 void ls(file_system *fs, const char *path); 
 

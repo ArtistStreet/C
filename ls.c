@@ -1,12 +1,23 @@
 #include "lib.h"
 
 void ls_path(file_system *fs, const char *path) {
-    char name[100];
-    strcpy(name, path);
     char *token = NULL;
+    char name[100];
     node *original_current = fs->current; // save the original current node
 
+    if (path[0] == '~') {
+        snprintf(name, sizeof(name), "%s%s", fs->root->name, path + 1);
+    } else {
+        strcpy(name, path);
+    }
+
     token = strtok(name, "/"); // tokenize the path by "/"
+
+    if (strcmp(token, "~") == 0) {
+        fs->current = fs->root;
+        token = strtok(NULL, "/");
+    }
+
     while (token != NULL) {
         node *target = find_node(fs->current, token);
         if (target != NULL) {
@@ -24,7 +35,7 @@ void ls_path(file_system *fs, const char *path) {
         }
         token = strtok(NULL, "/"); // get next token
     }
-
+    
     node *current = fs->current->child; // list the contents of the directory
     while (current != NULL) {
         if (current->isDir) {
@@ -43,16 +54,16 @@ void ls(file_system *fs, const char *path) {
     if (path == NULL || strcmp(path, "") == 0) { // current directory
         ls_path(fs, fs->current->name);  
     } else {
-        if (path[0] == '~') { 
-            char new_path[100];
-            snprintf(new_path, sizeof(new_path), "%s%s", fs->root->name, path + 1);
-            if (strcmp(new_path, "~/") == 0) {  
-                ls_path(fs, fs->root->name);
-            } else {
-                ls_path(fs, new_path);
-            }
-        } else {
-            ls_path(fs, path);
-        }
+        ls_path(fs, path);
+        // if (path[0] == '~') { 
+        //     char new_path[100];
+        //     snprintf(new_path, sizeof(new_path), "%s%s", fs->root->name, path + 1);
+        //     if (strcmp(new_path, "~/") == 0) {  
+        //         ls_path(fs, fs->root->name);
+        //     } else {
+        //         ls_path(fs, new_path);
+        //     }
+        // } else {
+        // }
     }
 }

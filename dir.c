@@ -10,6 +10,25 @@ void rm_dir(const char *names, file_system *fs, const int isDir) {
     REMOVE(names, fs, 1);
 }
 
+void split_path(const char *path, char *parent, char *last_part) {
+    char *last_slash = strrchr(path, '/'); // Tìm dấu '/' cuối cùng
+    if (last_slash) {
+        size_t index = last_slash - path + 1; // Lấy vị trí của dấu '/'
+        strncpy(parent, path, index); // Copy phần trước dấu '/'
+        parent[index] = '\0'; // Kết thúc chuỗi
+
+        if (*(last_slash + 1) != '\0') {
+            strcpy(last_part, last_slash + 1); // Copy phần sau '/'
+        } else {
+            last_part[0] = '\0'; // Nếu '/' ở cuối, last_part rỗng
+        }
+    } else {
+        // Nếu không tìm thấy '/', coi toàn bộ chuỗi là last_part
+        strcpy(parent, ""); 
+        strcpy(last_part, path);
+    }
+}
+
 int main() {
     file_system *fs = load_file_system("filesystem.txt"); 
     printf("press \033[1;31m%s\033[0m for more information\n", "help");
@@ -19,7 +38,7 @@ int main() {
     
     // save_tab[0] = 'c', save_tab[1] = 'd', save_tab[2] = ' ';
     memset(buffer, 0x0, sizeof(buffer));
-    char *string = NULL, *before_slash = NULL, *res = NULL, *save_current_location = NULL; // directory before slash
+    char *string = NULL, *res = NULL, *save_current_location = NULL; // directory before slash
 
     while (1) {
         char c = getchar();
@@ -28,35 +47,29 @@ int main() {
         // TODO: handel tab
         // FIXME: fix auto complete when press tab 
         if (c == '\t') {
-            bool check_string_end = false;
+            // bool check_string_end = false;
             if (cnt_tab < 1) {
                 string = strchr(buffer, ' ');
                 if (string) {
                     string += 1;
                 }
-                res = check_string(string, &check_string_end, &before_slash);
+                // res = check_string(string);
             }
 
-            if (check_string_end == true) { // if string end with /
-                printf("\n");
-                ls(fs, res);
-            } else {
-                cnt_tab++;
-                if (before_slash == NULL) {
-                    before_slash = (char *)malloc(2 * sizeof(char));
+            cnt_tab++;
+            char parent[100], last_part[100];
+            split_path(string, parent, last_part);
+            // printf("%s\n", buffer);
+            save_current_location = handle_tab(fs, last_part, parent, cnt_tab, &loop, buffer, &i);
 
-                    if (before_slash == NULL) {
-                        printf("Memory allocation failed\n");
-                        exit(1);
-                    }
-
-                    strcpy(before_slash, "~");
-                }
-                // printf("%s\n", buffer);
-                save_current_location = handle_tab(fs, res, before_slash, cnt_tab, &loop, buffer, &i);
-                // printf("%d\n", i);
+            if (save_current_location != NULL) {
+                strcat(buffer, save_current_location);
             }
 
+            // printf("\n");
+            // printf("\r\033[K");  
+            // printf("%s", buffer);
+            
             continue;
         } else if (c == 127) { // handle backspace
             if (i > 0) {
@@ -92,7 +105,7 @@ int main() {
                 i = 0;
                 cnt_tab = 0;
                 loop = 0;
-                string = NULL, before_slash = NULL, res = NULL, save_current_location = NULL; // directory before slash
+                string = NULL, res = NULL, save_current_location = NULL; // directory before slash
                 
                 memset(buffer, 0x0, sizeof(buffer));
             } else {
