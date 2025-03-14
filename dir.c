@@ -36,54 +36,66 @@ int main() {
     struct termios oldt;
     enableRawMode(&oldt);
     
-    // save_tab[0] = 'c', save_tab[1] = 'd', save_tab[2] = ' ';
     memset(buffer, 0x0, sizeof(buffer));
     char *string = NULL, *res = NULL, *save_current_location = NULL; // directory before slash
+    int8_t len = 0;
 
     while (1) {
         char c = getchar();
         char *tok = NULL;
         bool print_pwd = true;
-        // TODO: handel tab
-        // FIXME: fix auto complete when press tab 
+
         if (c == '\t') {
-            // bool check_string_end = false;
             if (cnt_tab < 1) {
                 string = strchr(buffer, ' ');
                 if (string) {
                     string += 1;
                 }
-                // res = check_string(string);
             }
 
             cnt_tab++;
             char parent[100], last_part[100];
             split_path(string, parent, last_part);
-            // printf("%s\n", buffer);
+            // printf("%s %s\n", last_part, parent);
             save_current_location = handle_tab(fs, last_part, parent, cnt_tab, &loop, buffer, &i);
 
             if (save_current_location != NULL) {
                 strcat(buffer, save_current_location);
             }
-
-            // printf("\n");
-            // printf("\r\033[K");  
-            // printf("%s", buffer);
-            
             continue;
         } else if (c == 127) { // handle backspace
             if (i > 0) {
                 i--;
-                buffer[i] = '\0';
-                printf("\b \b"); // move cursor back, print space, move cursor back again
+                len--;
+                for (int j = i; j < len; j++) {
+                    buffer[j] = buffer[j + 1];
+                }
+                buffer[len] = '\0';
+
+                printf("\r%s ", buffer); 
+                printf("\r");
+                for (int j = 0; j < i; j++) printf("\033[C"); 
+            }
+            continue;
+        } else if (c == 27) {  
+            if (getchar() == '[') { 
+                char arrow = getchar();
+                if (arrow == 'D') { 
+                    if (i > 0) {
+                        i--;
+                        printf("\033[D");  
+                    }
+                } else if (arrow == 'C') { 
+                    if (i < len) {
+                        i++;
+                        printf("\033[C");  
+                    }
+                }
             }
             continue;
         } else {
             if (c == '\n') {
-        // printf("123");
-
                 if (save_current_location != NULL) {
-                    // printf("123");
                     for (int j = i - 1; j >= 0; j--) {
                         if (buffer[j] != ' ' && buffer[j] != '/') {
                             buffer[j] = '\0'; 
@@ -100,8 +112,6 @@ int main() {
                 if (tok == NULL) {
                     continue;
                 }
-                // printf("%s\n", tok);
-                // printf("123");
                 i = 0;
                 cnt_tab = 0;
                 loop = 0;
@@ -109,8 +119,16 @@ int main() {
                 
                 memset(buffer, 0x0, sizeof(buffer));
             } else {
+                for (int8_t j = len; j > i; j--) {
+                    buffer[j] = buffer[j - 1];
+                }
+
                 buffer[i++] = c;
-                printf("%c", c); // echo the character
+                len++;
+                printf("\r%s", buffer);
+                printf("\r%s", buffer);
+                printf("\r");
+                for (int j = 0; j < i; j++) printf("\033[C");
                 continue;
             }
         }

@@ -35,7 +35,7 @@ void ls_path(file_system *fs, const char *path) {
         }
         token = strtok(NULL, "/"); // get next token
     }
-    
+
     node *current = fs->current->child; // list the contents of the directory
     while (current != NULL) {
         if (current->isDir) {
@@ -55,15 +55,5 @@ void ls(file_system *fs, const char *path) {
         ls_path(fs, fs->current->name);  
     } else {
         ls_path(fs, path);
-        // if (path[0] == '~') { 
-        //     char new_path[100];
-        //     snprintf(new_path, sizeof(new_path), "%s%s", fs->root->name, path + 1);
-        //     if (strcmp(new_path, "~/") == 0) {  
-        //         ls_path(fs, fs->root->name);
-        //     } else {
-        //         ls_path(fs, new_path);
-        //     }
-        // } else {
-        // }
     }
 }

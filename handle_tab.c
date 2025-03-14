@@ -89,7 +89,7 @@ char *handle_tab(file_system *fs, char *last_part, char *before_slash, int8_t cn
     if (cnt_tab == 1) {
         // printf("\r\033[K");
         printf("\033[s");
-        // // printf("\r\033[K");
+        // printf("\r\033[K");
         // printf("\n");
         
         int8_t index = 0;
@@ -135,16 +135,30 @@ char *handle_tab(file_system *fs, char *last_part, char *before_slash, int8_t cn
         // printf("\n");
         // printf("\033[K");
         printf("\033[u");
-        printf("\033[1A");
+        // printf("\033[1A");
     } else { // return list
         // printf("\033[1A");
+        // printf("\033[s");
         printf("\r\033[K");
-        printf("\033[s");
+        // printf("%s", buffer); 
+        // printf("\033[%dG", (int)(strlen(buffer) + 1)); 
+        // printf("\n");
+
+         for (int i = *current_location; i >= 0; i--) {
+            if (buffer[i] != ' ' && buffer[i] != '/') {
+                buffer[i] = '\0'; 
+            } else {
+                break;
+            }
+        }
+
+        printf("\n");
 
         for (size_t i = 0; i < cnt; i++) {
             if (i == *loop % cnt) {
                 printf("\033[1;33m%s\033[0m ", list[i].first);
                 result = strdup(list[i].first);
+                strcat(buffer, list[i].first);
             } else {
                 if (list[i].second == 1) {
                     printf("\033[1;32m%s\033[0m ", list[i].first);
@@ -154,8 +168,10 @@ char *handle_tab(file_system *fs, char *last_part, char *before_slash, int8_t cn
             }
         }
 
-        printf("\033[K");
-        printf("\033[u");
+        printf("\r\033[A");  // move cursor up
+
+        printf("%s", buffer);
+
         fflush(stdout);
 
         (*loop)++;
