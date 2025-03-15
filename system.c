@@ -180,6 +180,42 @@ file_system *load_file_system(const char *filename) {
     return fs;
 }
 
+node *get_destination(file_system *fs, const char *path, char *token, node *original_current) {
+    char name[100];
+
+    if (path[0] == '~') {
+        snprintf(name, sizeof(name), "%s%s", fs->root->name, path + 1);
+    } else {
+        strcpy(name, path);
+    }
+
+    token = strtok(name, "/"); // tokenize the path by "/"
+
+    if (strcmp(token, "~") == 0) {
+        fs->current = fs->root;
+        token = strtok(NULL, "/");
+    }
+
+    while (token != NULL) {
+        node *target = build_node(fs->current, token);
+        if (target != NULL) {
+            if (target->isDir) {
+                fs->current = target; 
+            } else {
+                printf("Not a directory\n");
+                fs->current = original_current; // restore the original current node
+                return NULL;
+            }
+        } else {
+            printf("Directory not found\n");
+            fs->current = original_current; // restore the original current node
+            return NULL;
+        }
+        token = strtok(NULL, "/"); // get next token
+    }
+    return fs->current->child;
+}
+
 void enableRawMode(struct termios *oldt) {
     struct termios newt;
     tcgetattr(STDIN_FILENO, oldt);

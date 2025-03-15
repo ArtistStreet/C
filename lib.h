@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <malloc.h>
 
-extern char *save_file_with_similar_name[200], save_tab[20];
 extern char choice[100], buffer[100];
 extern int8_t loop, cnt_tab, cnt_enter, i;     
 
@@ -35,7 +34,7 @@ int32_t hash_for_file(char *str, int8_t len);
 
 bool check_name(const char *name, node *current); 
 
-char *check_string(char *string);
+void split_path(const char *path, char *parent, char *last_part);
 
 void mkdir(const char *names, file_system *fs); 
 
@@ -44,6 +43,8 @@ void touch(const char *names, file_system *fs);
 void REMOVE(const char *names, file_system *fs, const int check); 
 
 void cd(const char *names, file_system *fs, bool print_pwd);
+
+node *get_destination(file_system *fs, const char *path, char *token, node *original_current);
 
 char *handle_tab(file_system *fs, char *res, char *before_slash, int8_t cnt_tab, int8_t *loop, char *buffer, int8_t *current_location);
 
@@ -69,7 +70,7 @@ void enableRawMode(struct termios *oldt);
 
 void disableRawMode(struct termios *oldt);
 
-void mv();
+void mv(const char *path, file_system *fs);
 
 void help();
 

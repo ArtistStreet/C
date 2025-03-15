@@ -11,19 +11,22 @@ void rm_dir(const char *names, file_system *fs, const int isDir) {
 }
 
 void split_path(const char *path, char *parent, char *last_part) {
-    char *last_slash = strrchr(path, '/'); // Tìm dấu '/' cuối cùng
-    if (last_slash) {
-        size_t index = last_slash - path + 1; // Lấy vị trí của dấu '/'
-        strncpy(parent, path, index); // Copy phần trước dấu '/'
-        parent[index] = '\0'; // Kết thúc chuỗi
+    // if ((strcmp(last_part, "\0") == 0) || (strcmp(parent, "\0") == 0)) {
+    //     return;
+    // }
 
-        if (*(last_slash + 1) != '\0') {
-            strcpy(last_part, last_slash + 1); // Copy phần sau '/'
-        } else {
-            last_part[0] = '\0'; // Nếu '/' ở cuối, last_part rỗng
-        }
-    } else {
-        // Nếu không tìm thấy '/', coi toàn bộ chuỗi là last_part
+    char *last_slash = strrchr(path, '/'); 
+
+    if (last_slash && last_slash != path) { 
+        size_t index = last_slash - path; 
+        strncpy(parent, path, index); 
+        parent[index] = '\0';
+        
+        strcpy(last_part, last_slash + 1); 
+    } else if (last_slash == path) {
+        strcpy(parent, "/");
+        strcpy(last_part, "");
+    } else { 
         strcpy(parent, ""); 
         strcpy(last_part, path);
     }
@@ -31,8 +34,8 @@ void split_path(const char *path, char *parent, char *last_part) {
 
 void print_memory_usage() {
     struct mallinfo2 mi = mallinfo2();
-    printf("Total allocated: %ld bytes\n", mi.uordblks);  // Tổng bộ nhớ đã cấp phát
-    printf("Total free: %ld bytes\n", mi.fordblks);        // Bộ nhớ còn trống
+    printf("Total allocated: %ld bytes\n", mi.uordblks);  
+    printf("Total free: %ld bytes\n", mi.fordblks);       
 }
 
 int main() {
@@ -52,21 +55,24 @@ int main() {
         bool print_pwd = true;
         // TODO: handle tab
         if (c == '\t') {
+            if (buffer[0] == '\0') continue;
             // printf("\r\033[K");
-
             if (cnt_tab < 1) {
                 string = strchr(buffer, ' ');
                 if (string) {
                     string += 1;
                 }
             }
-
+            
             // printf("%s ", buffer);
             
             cnt_tab++;
+            cnt_enter = 0;
             char parent[100], last_part[100];
             split_path(string, parent, last_part);
-            // printf("%s %s\n", last_part, parent);
+            // printf("234");
+            // printf("DEBUG: last_part='%s' parent='%s'\n", last_part, parent);
+
             save_current_location = handle_tab(fs, last_part, parent, cnt_tab, &loop, buffer, &i);
             if (save_current_location != NULL) {
                 strcat(buffer, save_current_location);
@@ -123,6 +129,29 @@ int main() {
                     }
                 }
                 cnt_enter++;
+                if (cnt_enter == 1 && save_current_location != NULL && cnt_tab != 1) {
+                    printf("\n");
+                    printf("\r\033[K");
+                    printf("\r\033[A");  // move cursor up
+                    printf("\r\033[K");
+                    strcat(buffer, "/");
+                    printf("%s", buffer);
+                    continue;
+                } 
+                else {
+                    printf("\n");
+                    printf("\r\033[K");
+                    if (i > 0)
+                        strcpy(choice, buffer);
+                    tok = strtok(choice, " ");
+                    if (tok == NULL) {
+                        continue;
+                    }
+                    // printf("%s\n", buffer);
+                    cnt_enter = 0, i = 0, cnt_tab = 0, loop = 0;
+                    string = NULL, save_current_location = NULL;
+                    memset(buffer, 0x0, sizeof(buffer));
+                }
                 // printf("%s\n", buffer);
             } else {
                 for (int8_t j = len; j > i; j--) {
@@ -139,25 +168,7 @@ int main() {
             }
         }
 
-        if (cnt_enter == 1 && save_current_location != NULL && cnt_tab != 1) {
-            printf("\r\033[K");
-            strcat(buffer, "/");
-            // printf("%s", buffer);
-            continue;
-        } else {
-            printf("\n");
-            printf("\r\033[K");
-            if (i > 0)
-                strcpy(choice, buffer);
-            tok = strtok(choice, " ");
-            if (tok == NULL) {
-                continue;
-            }
-            // printf("%s\n", buffer);
-            cnt_enter = 0, i = 0, cnt_tab = 0, loop = 0;
-            string = NULL, save_current_location = NULL;
-            memset(buffer, 0x0, sizeof(buffer));
-        }
+        
 
         if (strcmp(tok, "mkdir") == 0) {
             tok = strtok(NULL, " ");
@@ -184,7 +195,8 @@ int main() {
             tok = strtok(NULL, " ");
             rm_dir(tok, fs, 1);
         } else if (strcmp(tok, "mv") == 0) {
-
+            tok = strtok(NULL, "\0");
+            mv(tok, fs);
         } else if (strcmp(tok, "help") == 0) {
             help();
         } else {

@@ -9,6 +9,7 @@ b aaa 1
 b b 1
 ~ u 1
 ~ i 1
+~ ly 0
 ~ lyy 1
 ~ lyyy 1
 ~ eeee 1
