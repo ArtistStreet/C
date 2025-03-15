@@ -8,10 +8,11 @@
 #include <termios.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <malloc.h>
 
 extern char *save_file_with_similar_name[200], save_tab[20];
 extern char choice[100], buffer[100];
-extern int8_t loop, cnt_tab, i;     
+extern int8_t loop, cnt_tab, cnt_enter, i;     
 
 typedef struct node {
     char name[100]; // fix variable name
@@ -44,7 +45,7 @@ void REMOVE(const char *names, file_system *fs, const int check);
 
 void cd(const char *names, file_system *fs, bool print_pwd);
 
-char *handle_tab(file_system *fs, char *res, char *before_slash, int8_t cnt_tab, int8_t *loop, char buffer[100], int8_t *current_location);
+char *handle_tab(file_system *fs, char *res, char *before_slash, int8_t cnt_tab, int8_t *loop, char *buffer, int8_t *current_location);
 
 void ls_path(file_system *fs, const char *path);
 
@@ -53,6 +54,8 @@ void ls(file_system *fs, const char *path);
 void pwd(file_system *fs);
 
 node *find_node(node *root, const char *name);
+
+node *build_node(node *root, const char *name);
 
 void save_file_system(file_system *fs, const char *filename);
 

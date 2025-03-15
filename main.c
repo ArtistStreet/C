@@ -29,6 +29,12 @@ void split_path(const char *path, char *parent, char *last_part) {
     }
 }
 
+void print_memory_usage() {
+    struct mallinfo2 mi = mallinfo2();
+    printf("Total allocated: %ld bytes\n", mi.uordblks);  // Tổng bộ nhớ đã cấp phát
+    printf("Total free: %ld bytes\n", mi.fordblks);        // Bộ nhớ còn trống
+}
+
 int main() {
     file_system *fs = load_file_system("filesystem.txt"); 
     printf("press \033[1;31m%s\033[0m for more information\n", "help");
@@ -37,15 +43,17 @@ int main() {
     enableRawMode(&oldt);
     
     memset(buffer, 0x0, sizeof(buffer));
-    char *string = NULL, *res = NULL, *save_current_location = NULL; // directory before slash
+    char *string = NULL, *save_current_location = NULL; // directory before slash
     int8_t len = 0;
 
     while (1) {
         char c = getchar();
         char *tok = NULL;
         bool print_pwd = true;
-
+        // TODO: handle tab
         if (c == '\t') {
+            // printf("\r\033[K");
+
             if (cnt_tab < 1) {
                 string = strchr(buffer, ' ');
                 if (string) {
@@ -53,14 +61,22 @@ int main() {
                 }
             }
 
+            // printf("%s ", buffer);
+            
             cnt_tab++;
             char parent[100], last_part[100];
             split_path(string, parent, last_part);
             // printf("%s %s\n", last_part, parent);
             save_current_location = handle_tab(fs, last_part, parent, cnt_tab, &loop, buffer, &i);
-
             if (save_current_location != NULL) {
                 strcat(buffer, save_current_location);
+            }
+            for (int i = strlen(buffer); i >= 0; i--) {
+                if (buffer[i] != ' ' && buffer[i] != '/') {
+                    buffer[i] = '\0'; 
+                } else {
+                    break;
+                }
             }
             continue;
         } else if (c == 127) { // handle backspace
@@ -95,7 +111,8 @@ int main() {
             continue;
         } else {
             if (c == '\n') {
-                if (save_current_location != NULL) {
+                if (save_current_location != NULL && cnt_enter == 0) {
+                    // printf("1234");
                     for (int j = i - 1; j >= 0; j--) {
                         if (buffer[j] != ' ' && buffer[j] != '/') {
                             buffer[j] = '\0'; 
@@ -105,19 +122,8 @@ int main() {
                         }
                     }
                 }
-                printf("\n");
-                if (i > 0)
-                    strcpy(choice, buffer);
-                tok = strtok(choice, " ");
-                if (tok == NULL) {
-                    continue;
-                }
-                i = 0;
-                cnt_tab = 0;
-                loop = 0;
-                string = NULL, res = NULL, save_current_location = NULL; // directory before slash
-                
-                memset(buffer, 0x0, sizeof(buffer));
+                cnt_enter++;
+                // printf("%s\n", buffer);
             } else {
                 for (int8_t j = len; j > i; j--) {
                     buffer[j] = buffer[j - 1];
@@ -126,11 +132,31 @@ int main() {
                 buffer[i++] = c;
                 len++;
                 printf("\r%s", buffer);
-                printf("\r%s", buffer);
+                // printf("\r%s", buffer);
                 printf("\r");
                 for (int j = 0; j < i; j++) printf("\033[C");
                 continue;
             }
+        }
+
+        if (cnt_enter == 1 && save_current_location != NULL && cnt_tab != 1) {
+            printf("\r\033[K");
+            strcat(buffer, "/");
+            // printf("%s", buffer);
+            continue;
+        } else {
+            printf("\n");
+            printf("\r\033[K");
+            if (i > 0)
+                strcpy(choice, buffer);
+            tok = strtok(choice, " ");
+            if (tok == NULL) {
+                continue;
+            }
+            // printf("%s\n", buffer);
+            cnt_enter = 0, i = 0, cnt_tab = 0, loop = 0;
+            string = NULL, save_current_location = NULL;
+            memset(buffer, 0x0, sizeof(buffer));
         }
 
         if (strcmp(tok, "mkdir") == 0) {
@@ -170,5 +196,7 @@ int main() {
     }
 
     disableRawMode(&oldt); // disable raw mode before exiting
+    print_memory_usage();
+
     return 0; 
 }

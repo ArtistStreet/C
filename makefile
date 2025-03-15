@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -Wall
 # LDFLAGS = -lreadline
-SRC = dir.c hash.c mkdir.c mv.c system.c \
+SRC = main.c hash.c mkdir.c mv.c system.c \
 remove.c pwd.c ls.c touch.c help.c cd.c \
-globals.c handle_tab.c
+globals.c handle_tab.c tree.c
 
 OBJ = dir.o
 

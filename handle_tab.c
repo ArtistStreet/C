@@ -67,7 +67,7 @@ pair *move(file_system *fs, const char *path, int8_t *cnt) {
         return NULL;
     }
 
-    i = 0;
+    int8_t i = 0;
     while (current != NULL) {
         list[i].first = strdup(current->name);
         list[i].second = (current->isDir == 0) ? 0 : 1;
@@ -80,90 +80,70 @@ pair *move(file_system *fs, const char *path, int8_t *cnt) {
     return list;
 }
 
-char *handle_tab(file_system *fs, char *last_part, char *before_slash, int8_t cnt_tab, int8_t *loop, char buffer[100], int8_t *current_location) {
+char *handle_tab(file_system *fs, char *last_part, char *parent, int8_t cnt_tab, int8_t *loop, char *buffer, int8_t *current_location) {
     char *result = NULL;
-    int8_t cnt = 0;
-    pair *list = move(fs, before_slash, &cnt);
+    int8_t cnt = 0, index = 0;
+
+    if (parent[0] == '\0') {
+        parent = fs->current->name;
+    }
+    pair *list = move(fs, parent, &cnt);
     pair *l = (pair *)malloc(100 * sizeof(pair));
+    // printf("DEBUG: last_part='%s' parent='%s'\n", last_part, parent);
+
+    for (int8_t i = 0; i < cnt; i++) {
+        if (hash_for_input(last_part) == hash_for_file(list[i].first, strlen(last_part))) {
+            l[index].first = strdup(list[i].first); 
+            l[index].second = list[i].second; 
+            index++; 
+        }
+    }
+
+    // printf("%d %d\n", cnt, index);
 
     if (cnt_tab == 1) {
-        // printf("\r\033[K");
-        printf("\033[s");
-        // printf("\r\033[K");
-        // printf("\n");
-        
-        int8_t index = 0;
-        for (int8_t i = 0; i < cnt; i++) {
-            if (hash_for_input(last_part) == hash_for_file(list[i].first, strlen(last_part))) {
-                l[index].first = strdup(list[i].first); 
-                l[index].second = list[i].second; 
-                index++; 
-            }
-        }
-
         if (index == 1) { // return itself
-            for (int i = *current_location - 1; i >= 0; i--) {
-                if (buffer[i] != ' ' && buffer[i] != '/') {
-                    buffer[i] = '\0'; 
-                } else {
+            for (int8_t i = *current_location - 1; i >= 0; i--) {
+                if (buffer[i] != ' ') {
+                    buffer[i] = '\0';
+                } 
+                else {
                     break;
                 }
             }
             strcat(buffer, l[0].first);
-            strcat(buffer, "/");
             printf("\r\033[K%s", buffer); 
-
+            // printf("%s\n", buffer);
+            // printf("234");
             free_memory(list, cnt);
-            free_memory(l, index);
-            printf("\033[u");
             return strdup(l[0].first);
         }
 
-        // printf("\r\033[K");
-        // printf("\033[u"); // Đưa con trỏ về vị trí ban đầu
-        
-        // // Hiển thị danh sách file nhưng giữ con trỏ nguyên vị trí
-        // printf("\033[s");
         printf("\n");
-        for (size_t i = 0; i < index; i++) {
-            if (list[i].second == 1) {
-                printf("\033[1;32m%s\033[0m ", list[i].first);
+        for (int8_t i = 0; i < index; i++) {
+            if (l[i].second == 1) {
+                printf("\033[1;32m%s\033[0m ", l[i].first);
             } else {
-                printf("\033[1;35m%s\033[0m ", list[i].first);
+                printf("\033[1;35m%s\033[0m ", l[i].first);
             }
         }
-        // printf("\n");
-        // printf("\033[K");
-        printf("\033[u");
-        // printf("\033[1A");
+        printf("\r\033[A");  // move cursor up
+        printf("%s", buffer);
     } else { // return list
-        // printf("\033[1A");
-        // printf("\033[s");
         printf("\r\033[K");
-        // printf("%s", buffer); 
-        // printf("\033[%dG", (int)(strlen(buffer) + 1)); 
-        // printf("\n");
-
-         for (int i = *current_location; i >= 0; i--) {
-            if (buffer[i] != ' ' && buffer[i] != '/') {
-                buffer[i] = '\0'; 
-            } else {
-                break;
-            }
-        }
 
         printf("\n");
 
-        for (size_t i = 0; i < cnt; i++) {
-            if (i == *loop % cnt) {
-                printf("\033[1;33m%s\033[0m ", list[i].first);
-                result = strdup(list[i].first);
-                strcat(buffer, list[i].first);
+        for (int8_t i = 0; i < index; i++) {            
+            if (i == *loop % index) {
+                printf("\033[1;33m%s\033[0m ", l[i].first);
+                result = strdup(l[i].first);
+                strcat(buffer, l[i].first);
             } else {
-                if (list[i].second == 1) {
-                    printf("\033[1;32m%s\033[0m ", list[i].first);
+                if (l[i].second == 1) {
+                    printf("\033[1;32m%s\033[0m ", l[i].first);
                 } else {
-                    printf("\033[1;35m%s\033[0m ", list[i].first);
+                    printf("\033[1;35m%s\033[0m ", l[i].first);
                 }
             }
         }
@@ -178,7 +158,6 @@ char *handle_tab(file_system *fs, char *last_part, char *before_slash, int8_t cn
     }
 
     free_memory(list, cnt);
-    // free_memory(l, cnt);
-
+    *current_location = strlen(buffer);
     return result ? result : NULL;
 }

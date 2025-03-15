@@ -35,15 +35,42 @@ void save_file_system(file_system *fs, const char *filename) {
     fclose(file);
 }
 
-node *find_node(node *root, const char *name) { // DFS
+node *find_node(node *current, const char *path) {
+    if (!current || !path || path[0] == '\0') return NULL;
+
+    char temp[100];
+    strcpy(temp, path);
+    // printf("%s\n", temp);
+
+    char *token = strtok(temp, "/");
+
+    while (token) {
+        node *found = NULL;
+
+        for (node *child = current->child; child; child = child->next) {
+            if (strcmp(child->name, token) == 0) {
+                found = child;
+                break;
+            }
+        }
+
+        if (!found) return NULL; // Node not found
+        current = found;
+        token = strtok(NULL, "/"); // Continue with the next token
+    }
+
+    return current; // Return the last found node
+}
+
+node *build_node(node *root, const char *name) { // DFS
     if (root == NULL) return NULL;
 
     if (strcmp(root->name, name) == 0) return root; // return location of root node
 
-    node *child = find_node(root->child, name); // find in child
+    node *child = build_node(root->child, name); // find in child
     if (child != NULL) return child;
 
-    return find_node(root->next, name); // find in sibling
+    return build_node(root->next, name); // find in sibling
 }
 
 node *load_node(FILE *file, node *root) {
@@ -57,11 +84,10 @@ node *load_node(FILE *file, node *root) {
     n->child = NULL;
     n->next = NULL;
 
-    if (strcmp(parent, "ROOT") == 0) { // check if parent if root
+    if (strcmp(parent, "ROOT") == 0) { // check if parent is root
         n->parent = root;
     } else { // find parent node
-        n->parent = find_node(root, parent);
-        // printf("%s\n", root);
+        n->parent = build_node(root, parent);
     }
 
     if (n->parent != NULL) { // add child or sibling
@@ -72,7 +98,6 @@ node *load_node(FILE *file, node *root) {
             while (sibling->next) { // find the last sibling
                 sibling = sibling->next;
             }
-            // printf("%s\n", sibling->name);
             sibling->next = n; // set next sibling to the end of the list 
         }
     }
@@ -141,7 +166,6 @@ file_system *load_file_system(const char *filename) {
     file_system *fs = (file_system *)malloc(sizeof(file_system));
     fs->root = NULL;
 
-    node *last_node = NULL;
     while (!feof(file)) { // read file 
         node *n = load_node(file, fs->root);
         if (!n) break;
@@ -149,7 +173,6 @@ file_system *load_file_system(const char *filename) {
         if (!fs->root) { // set root node
             fs->root = n;
         }
-        last_node = n;
     }
 
     fs->current = load_current_cursor(fs); // set current node to root

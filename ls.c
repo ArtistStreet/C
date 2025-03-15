@@ -19,7 +19,7 @@ void ls_path(file_system *fs, const char *path) {
     }
 
     while (token != NULL) {
-        node *target = find_node(fs->current, token);
+        node *target = build_node(fs->current, token);
         if (target != NULL) {
             if (target->isDir) {
                 fs->current = target; 
@@ -49,6 +49,7 @@ void ls_path(file_system *fs, const char *path) {
 
     fs->current = original_current; // restore the original current node
 }
+
 
 void ls(file_system *fs, const char *path) {
     if (path == NULL || strcmp(path, "") == 0) { // current directory
