@@ -16,25 +16,28 @@ void rename_and_move(file_system *fs, const char *path, const char *last_path) {
 
 void mv(const char *path, file_system *fs) {
     bool rename = false;
+    char name[100];
+    strcpy(name, path);
     // for (size_t i = 0; i < strlen(path); i++) {
     //     if (path[i] == ' ') {
     //         rename = true;
     //         break;
     //     }
     // }
-    char *tok = strtok(path, " ");
-    // printf("%s %s", tok_first, tok_second);
+    char *tok = strtok(name, " ");
+    char *last_tok = strrchr(name, ' ');
+    printf("%s\n", last_tok);
     while (tok != NULL) {
-        
+        printf("%s ", tok);
 
         tok = strtok(NULL, " ");
     }
-    if (!rename) { // rename
-        char parent[100], last_part[100];
-        split_path(path, parent, last_part);
-        rename_and_move(fs, path, last_part);
-    }
-    else { // move
+    // if (!rename) { // rename
+    //     char parent[100], last_part[100];
+    //     split_path(path, parent, last_part);
+    //     rename_and_move(fs, path, last_part);
+    // }
+    // else { // move
 
-    }
+    // }
 }

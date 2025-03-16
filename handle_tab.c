@@ -1,9 +1,6 @@
 #include "lib.h"
 
-typedef struct {
-    char *first;
-    int8_t second;
-} pair;
+
 
 void free_memory(pair *list, int8_t cnt) { // free memory
     for (int8_t i = 0; i < cnt; i++) {
@@ -44,12 +41,11 @@ char *handle_tab(file_system *fs, char *last_part, char *parent, int8_t cnt_tab,
         parent = fs->current->name;
     }
     pair *list = move(fs, parent, &cnt);
-    pair *l = (pair *)malloc(100 * sizeof(pair));
-    printf("DEBUG: last_part='%s' parent='%s'\n", last_part, parent);
+    l = (pair *)malloc(100 * sizeof(pair));
+    // printf("DEBUG: last_part='%s' parent='%s'\n", last_part, parent);
 
     for (int8_t i = 0; i < cnt; i++) {
-        if (hash_for_input(last_part) == hash_for_file(list[i].first, strlen(last_part) 
-    && list[i].second == 1)) {
+        if (hash_for_input(last_part) == hash_for_file(list[i].first, strlen(last_part))) {
             l[index].first = strdup(list[i].first); 
             l[index].second = list[i].second; 
             index++; 
@@ -77,41 +73,57 @@ char *handle_tab(file_system *fs, char *last_part, char *parent, int8_t cnt_tab,
         }
 
         printf("\n");
-        for (int8_t i = 0; i < index; i++) {            
-            if (l[i].second == 0) {
-                l[i].first = l[i + 1].first;
-                l[i].second = l[i + 1].second;
-                index--;
-            }
-        }
+        // if (buffer[0] == 'c') {
+        //     for (int8_t i = 0; i < index; i++) {            
+        //         if (l[i].second == 0) {
+        //             l[i].first = l[i + 1].first;
+        //             l[i].second = l[i + 1].second;
+        //             index--;
+        //         }
+        //     }
+        // }
+
         for (int8_t i = 0; i < index; i++) {
             if (l[i].second == 1) {
                 printf("\033[1;32m%s\033[0m ", l[i].first);
+            }
+            else {
+                printf("\033[1;35m%s\033[0m ", l[i].first);
             }
         }
         printf("\r\033[A");  // move cursor up
         printf("%s", buffer);
     } 
     else { // return list
+        // char *save = NULL;
+        // save = strcpy(save, buffer);
         printf("\r\033[K");
         printf("\n");
-        for (int8_t i = 0; i < index; i++) {            
-            if (l[i].second == 0) {
-                l[i].first = l[i + 1].first;
-                l[i].second = l[i + 1].second;
-                index--;
-            }
-        }
+        // if (buffer[0] == 'c') {
+        //     for (int8_t i = 0; i < index; i++) {            
+        //         if (l[i].second == 0) {
+        //             l[i].first = l[i + 1].first;
+        //             l[i].second = l[i + 1].second;
+        //             index--;
+        //         }
+        //     }
+        // }
         // printf("%d", index);
         for (int8_t i = 0; i < index; i++) {            
-            if (i == *loop % index) {
-                // if (l[i].second == 1) {
-                    printf("\033[1;33m%s\033[0m ", l[i].first);
-                    result = strdup(l[i].first);
-                    strcat(buffer, l[i].first);
+            if (i == *loop % index) { // selected
+                slash = *loop % index;
+                printf("\033[1;33m%s\033[0m ", l[i].first);
+                result = strdup(l[i].first);
+                strcat(buffer, l[i].first);
+                // strcat(buffer, " ");
+        // printf("%s", buffer);
+
             } else {
                 if (l[i].second == 1) {
                     printf("\033[1;32m%s\033[0m ", l[i].first);
+                }
+                else {
+                    printf("\033[1;35m%s\033[0m ", l[i].first);
                 }
             }
         }

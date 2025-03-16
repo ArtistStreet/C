@@ -9,7 +9,7 @@ void ls_path(file_system *fs, const char *path) {
     while (current != NULL) {
         check = false;
         if (current->isDir) {
-            printf("\033[1;32m%s\033[0m ", current->name);
+            printf("\033[1;32m%s\033[0m ", current->name); 
         } else {
             printf("\033[1;35m%s\033[0m ", current->name);
         }

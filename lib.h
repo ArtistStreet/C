@@ -11,7 +11,7 @@
 #include <malloc.h>
 
 extern char choice[100], buffer[100];
-extern int8_t loop, cnt_tab, cnt_enter, i;     
+extern int8_t loop, cnt_tab, cnt_enter, i, slash;     
 
 typedef struct node {
     char name[100]; // fix variable name
@@ -25,6 +25,13 @@ typedef struct file_system {
     node *root; // root node
     node *current; // current node
 } file_system;
+
+typedef struct {
+    char *first;
+    int8_t second;
+} pair;
+
+extern pair *l;
 
 file_system *init();
 

@@ -18,6 +18,7 @@ void mkdir(const char *names, file_system *fs) {
         if (check_name(names, fs->current) == false) { // check if name exists
             node *new_node = (node *)malloc(sizeof(node)); // allocate memory for new node
             strcpy(new_node->name, names); // set name
+            strcat(new_node->name, "/");
             new_node->isDir = 1; // set is dir
             new_node->parent = fs->current; // set parent
             new_node->child = NULL;
