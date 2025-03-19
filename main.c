@@ -31,11 +31,47 @@ void split_path(const char *path, char *parent, char *last_part) {
     }
 }
 
-void print_memory_usage() {
-    struct mallinfo2 mi = mallinfo2();
-    printf("Total allocated: %ld bytes\n", mi.uordblks);  
-    printf("Total free: %ld bytes\n", mi.fordblks);       
+const char *list[] = {"cd", "mkdir", "touch", "mv", "help", "pwd", "ls"};
+
+bool check_arguments(const char *buffer) {
+    if (buffer == NULL || buffer[0] == '\0') {
+        return true;  // Trả về `true` nếu chuỗi rỗng
+    }
+
+    char buffer_copy[100];
+    strncpy(buffer_copy, buffer, sizeof(buffer_copy) - 1);
+    buffer_copy[sizeof(buffer_copy) - 1] = '\0';  // Đảm bảo chuỗi kết thúc hợp lệ
+
+    char *tok = strtok(buffer_copy, " ");
+    if (tok == NULL) return true;  // Kiểm tra tránh lỗi Segmentation Fault
+
+    printf("Chuỗi gốc: %s\n", buffer);
+    printf("Token đầu tiên: %s\n", tok);
+
+    int8_t cnt = 0;
+    while (tok != NULL) {
+        printf("Token: %s\n", tok);
+           for (size_t i = 0; i < sizeof(list) / sizeof(list[0]); i++) {
+            if (strcmp(tok, list[i]) == 0) {
+                cnt++;
+                break;
+            }
+        }
+        
+        // Kiểm tra nếu `tok` bị NULL trước khi tiếp tục
+        tok = strtok(NULL, " ");
+        if (tok == NULL) break;  // Thoát vòng lặp an toàn
+    }
+
+    return cnt <= 1;
 }
+
+
+// void print_memory_usage() {
+//     struct mallinfo2 mi = mallinfo2();
+//     printf("Total allocated: %ld bytes\n", mi.uordblks);  
+//     printf("Total free: %ld bytes\n", mi.fordblks);       
+// }
 
 int main() {
     file_system *fs = load_file_system("filesystem.txt"); 
@@ -108,6 +144,11 @@ int main() {
             continue;
         } 
         else if (c == 127) { // handle backspace
+            if (save_current_location != NULL) {
+                strcat(buffer, save_current_location);
+                len = i;
+            }
+            // printf("buffer: %s, i: %d", buffer, len);
             if (i > 0) {
                 i--;
                 len--;
@@ -121,7 +162,7 @@ int main() {
                 for (int j = 0; j < i; j++) printf("\033[C"); 
             }
             continue;
-        } else if (c == 27) {  
+        } else if (c == 27) {  // handle arrow key
             if (getchar() == '[') { 
                 char arrow = getchar();
                 if (arrow == 'D') { 
@@ -173,7 +214,6 @@ int main() {
                     }
                     cnt_enter = 0, i = 0, cnt_tab = 0, loop = 0, slash = 0;
                     string = NULL, save_current_location = NULL;
-                    memset(buffer, 0x0, sizeof(buffer));
                 }
             } else {
                 for (int8_t j = len; j > i; j--) {
@@ -187,6 +227,23 @@ int main() {
                 for (int j = 0; j < i; j++) printf("\033[C");
                 continue;
             }
+        }
+        int cnt = 0; 
+        for (size_t i = 0; i < 6; i++) {
+            // printf("%s %s\n", tok, list[i]);
+            if (strcmp(tok, list[i]) != 0) {
+                cnt++;
+            }
+        }
+            // printf("%s", buffer);
+        // buffer[strcspn(buffer, "\n")] = '\0'; 
+        if (cnt == 6) {
+            printf("%s: command not found\n", tok);
+            continue;
+        } 
+        else if (check_arguments(buffer) == false) {
+            memset(buffer, 0x0, sizeof(buffer));
+            continue;
         }
 
         if (strcmp(tok, "mkdir") == 0) {
@@ -219,15 +276,14 @@ int main() {
         } else if (strcmp(tok, "help") == 0) {
             help();
         } else {
-            if (c != '\n')
-                printf("%s: command not found\n", tok);
             disableRawMode(&oldt); // disable raw mode before exiting
         }
         memset(choice, 0, sizeof(choice));
+        memset(buffer, 0x0, sizeof(buffer));
     }
 
     disableRawMode(&oldt); // disable raw mode before exiting
-    print_memory_usage();
+    // print_memory_usage();
 
     return 0; 
 }
