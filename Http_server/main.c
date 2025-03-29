@@ -51,18 +51,40 @@ void send_file_content(u_int32_t client_fd, const char *file_name) {
     }
 }
 
-void log_request(const char *client_ip, const char *method, const char *path, int status) {
+char *get_client_ip(int client_fd) {
+    struct sockaddr_in addr;
+    socklen_t addr_len = sizeof(addr);
+    char *client_ip = (char *)malloc(INET_ADDRSTRLEN);
+
+    if (client_ip && getpeername(client_fd, (struct sockaddr *)&addr, &addr_len) == 0) {
+        inet_ntop(AF_INET, &addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+        return client_ip;
+    } else {
+        perror("getpeername");
+        free(client_ip);
+        return NULL;
+    }
+}
+
+
+void log_request(int client_fd, const char *method, const char *path) {
     FILE *log_file = fopen("server.log", "a");
+
+    char *ip = get_client_ip(client_fd);
+    time_t now = time(NULL);
+    char time_str[20];
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+
     if (log_file) {
-        fprintf(log_file, "[%ld] Client IP: %s, Method: %s, Path: %s, Status: %d\n",
-                time(NULL), client_ip, method, path, status);
+        fprintf(log_file, "[%s] Client IP: %s Method: %s, Path: %s\n",
+                time_str, ip, method, path);
         fclose(log_file);
     } else {
         return;
     }
 }
 
-void handle_client(u_int32_t client_fd) {
+void handle_client(u_int32_t client_fd, const char *html, const char *css, const char *js) {
     FILE *server_log = fopen("server.log", "a");
 
     char buffer[buffer_size];
@@ -73,23 +95,23 @@ void handle_client(u_int32_t client_fd) {
     }
 
     buffer[bytes_read] = '\0';
-    if (server_log) {
-        // fwrite(buffer, 1, strlen(buffer), server_log);
-    }
 
     if (strncmp(buffer, "GET ", 4) == 0) {
+        log_request(client_fd, "GET", html);
+
         char *start = buffer + 4; // start from 5th char
         char *end = strchr(start, ' ');
         *end = '\0';
         
         if (strcmp(start, "/") == 0) {
-            send_file_content(client_fd, "Web/index.html");
+            // char path[100];
+            send_file_content(client_fd, html);
         } else {
-            char file_name[buffer_size];
-            snprintf(file_name, sizeof(file_name), "Web%s", start);
-            send_file_content(client_fd, file_name);
+            send_file_content(client_fd, css);
         }
     } else if (strncmp(buffer, "POST ", 5) == 0) {
+        log_request(client_fd, "POST", css);
+        
         char *body = strstr(buffer, "\r\n\r\n");
         if (body) {
             body += 4;
@@ -182,8 +204,7 @@ int main(int argc, char **argv) {
             perror("accept");
             continue;
         }
-
-        handle_client(client_fd);
+        handle_client(client_fd, argv[1], argv[2], argv[3]);
         close(client_fd);
     }
 
