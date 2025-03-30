@@ -10,38 +10,60 @@ const char *get_content_type(const char *path) {
         return "text/css";
     } else if (strstr(path, ".js")) {
         return "application/javascript";
-    } 
+    } else if (strstr(path, ".jpg")) {
+        return "image/jpeg";
+    } else if (strstr(path, ".png")) {
+        return "image/png";
+    }
 
     return "text/plain";
 }
 
+long get_file_size(const char *filename) {
+    FILE *file = fopen(filename, "rb");
+    if (!file) return 0;
+
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fclose(file);
+    return size;
+}
+
 // server reads index file and send content to client using socket
-void send_file_content(u_int32_t client_fd, const char *file_name) {
-    FILE *file = fopen(file_name, "r");
+void send_file_content(int client_fd, const char *file_name) {
+    FILE *file;
+    if (strstr(file_name, ".jpg") || strstr(file_name, ".png")) {
+        file = fopen(file_name, "rb"); 
+    } else {
+        file = fopen(file_name, "r");
+    }
+
     FILE *server_log = fopen("server.log", "a");
 
     if (file) {
-        char response[buffer_size];
-        char content[buffer_size];
+        char header[256];
+        snprintf(header, sizeof(header),
+                 "HTTP/1.1 200 OK\r\n"
+                 "Content-Type: %s\r\n"
+                 "Content-Length: %lu\r\n"
+                 "\r\n",
+                 get_content_type(file_name),
+                 (unsigned long) get_file_size(file_name));
 
-        size_t byte_read = fread(content, 1, sizeof(content) - 1, file);
-        content[byte_read] = '\0';
+        send(client_fd, header, strlen(header), 0);
+
+        char buffer[1024];
+        size_t bytes_read;
+        while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+            send(client_fd, buffer, bytes_read, 0);
+        }
+
         fclose(file);
-
-        // Create HTTP response
-        snprintf(response, sizeof(response),
-         "HTTP/1.1 200 OK\r\n"
-         "Content-Type: %s\r\n"
-         "Content-Length: %lu\r\n"
-         "\r\n%s",
-         get_content_type(file_name), (unsigned long)byte_read, content);
-
-        // Send
-        send(client_fd, response, strlen(response), 0);
     } else {
         char *not_found = "HTTP/1.1 404 Not Found\r\n\r\n";
         send(client_fd, not_found, strlen(not_found), 0);
         if (server_log) {
+            fprintf(server_log, "Error: Failed to open file %s\n", file_name);
             fwrite(not_found, 1, strlen(not_found), server_log);
         }
     }
@@ -50,6 +72,7 @@ void send_file_content(u_int32_t client_fd, const char *file_name) {
         fclose(server_log);
     }
 }
+
 
 char *get_client_ip(int client_fd) {
     struct sockaddr_in addr;
@@ -68,6 +91,7 @@ char *get_client_ip(int client_fd) {
 
 
 void log_request(int client_fd, const char *method, const char *path) {
+    // printf("debug: %s\n", path);
     FILE *log_file = fopen("server.log", "a");
 
     char *ip = get_client_ip(client_fd);
@@ -97,17 +121,35 @@ void handle_client(u_int32_t client_fd, const char *html, const char *css, const
     buffer[bytes_read] = '\0';
 
     if (strncmp(buffer, "GET ", 4) == 0) {
-        log_request(client_fd, "GET", html);
-
+        
         char *start = buffer + 4; // start from 5th char
         char *end = strchr(start, ' ');
         *end = '\0';
+        // printf("debug: %s\n", start);
+        fflush(stdout);
         
         if (strcmp(start, "/") == 0) {
-            // char path[100];
+            log_request(client_fd, "GET", html);
             send_file_content(client_fd, html);
         } else {
-            send_file_content(client_fd, css);
+            if (strstr(start, ".css")) {
+                log_request(client_fd, "GET", css);
+                send_file_content(client_fd, css);
+            } else if (strstr(start, ".js")) {
+                log_request(client_fd, "GET", js);
+                send_file_content(client_fd, js);
+            } else if (strstr(start, ".jpg") || strstr(start, ".png")) {
+                char image_path[256];
+                snprintf(image_path, sizeof(image_path), "Web%s", start); // Thêm "web/"
+                // printf("%s", image_path);
+                log_request(client_fd, "GET", image_path);
+                send_file_content(client_fd, image_path);
+                // log_request(client_fd, "GET", start + 1); // Remove leading '/'
+                // send_file_content(client_fd, start + 1);
+            } else {
+                char not_found[] = "HTTP/1.1 404 Not Found\r\n\r\n";
+                send(client_fd, not_found, strlen(not_found), 0);
+            }
         }
     } else if (strncmp(buffer, "POST ", 5) == 0) {
         log_request(client_fd, "POST", css);

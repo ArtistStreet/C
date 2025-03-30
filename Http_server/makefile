@@ -4,7 +4,7 @@ CFLAGS = -Wall -g
 MONGOC_FLAGS = $(shell pkg-config --cflags --libs libmongoc-1.0 libbson-1.0)
 
 # Files
-SRC = main.c user_handle.c
+SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
 TARGET = main
 
