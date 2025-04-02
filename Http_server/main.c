@@ -38,17 +38,30 @@ void send_file_content(int client_fd, const char *file_name) {
         file = fopen(file_name, "r");
     }
 
+<<<<<<< HEAD
     FILE *server_log = fopen("server.log", "a");
+=======
+    FILE *server_log = fopen("log/server.log", "a");
+>>>>>>> 2f0e4a7 (update)
 
     if (file) {
         char header[256];
         snprintf(header, sizeof(header),
+<<<<<<< HEAD
                  "HTTP/1.1 200 OK\r\n"
                  "Content-Type: %s\r\n"
                  "Content-Length: %lu\r\n"
                  "\r\n",
                  get_content_type(file_name),
                  (unsigned long) get_file_size(file_name));
+=======
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: %s\r\n"      
+                "Content-Length: %lu\r\n"
+                "\r\n",
+                get_content_type(file_name),
+                (unsigned long) get_file_size(file_name));
+>>>>>>> 2f0e4a7 (update)
 
         send(client_fd, header, strlen(header), 0);
 
@@ -92,7 +105,11 @@ char *get_client_ip(int client_fd) {
 
 void log_request(int client_fd, const char *method, const char *path) {
     // printf("debug: %s\n", path);
+<<<<<<< HEAD
     FILE *log_file = fopen("server.log", "a");
+=======
+    FILE *log_file = fopen("log/server.log", "a");
+>>>>>>> 2f0e4a7 (update)
 
     char *ip = get_client_ip(client_fd);
     time_t now = time(NULL);
@@ -100,16 +117,32 @@ void log_request(int client_fd, const char *method, const char *path) {
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
     if (log_file) {
+<<<<<<< HEAD
         fprintf(log_file, "[%s] Client IP: %s Method: %s, Path: %s\n",
                 time_str, ip, method, path);
+=======
+        // fprintf(log_file, "[%s] Client IP: %s Method: %s, Path: %s\n",
+        //         time_str, ip, method, path);
+>>>>>>> 2f0e4a7 (update)
         fclose(log_file);
     } else {
         return;
     }
 }
 
+<<<<<<< HEAD
 void handle_client(u_int32_t client_fd, const char *html, const char *css, const char *js) {
     FILE *server_log = fopen("server.log", "a");
+=======
+void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const char *css, const char *js) {
+    SSL *ssl = SSL_new(ctx);
+    SSL_set_fd(ssl, client_fd);
+
+    if (SSL_accept(sl) <= 0) {
+
+    }
+    FILE *server_log = fopen("log/server.log", "a");
+>>>>>>> 2f0e4a7 (update)
 
     char buffer[buffer_size];
     int bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
@@ -203,17 +236,26 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+<<<<<<< HEAD
     uint32_t server_fd, client_fd;
     struct sockaddr_in server_addr, client_addr; // server address, client address
     socklen_t client_len = sizeof(client_addr); 
 
     // create socket
     server_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
+=======
+    SSL_library_init();
+    SSL_CTX *ctx = init_ssl();
+
+    server_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
+    struct sockaddr_in addr = {AF_INET, htons(4433), INADDR_ANY};
+>>>>>>> 2f0e4a7 (update)
     if (server_fd == -1) {
         perror("socket");
         exit(EXIT_FAILURE);
     }
 
+<<<<<<< HEAD
     // reuse socket
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -242,6 +284,16 @@ int main(int argc, char **argv) {
     while(1) {
         // accept connect from client
         client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+=======
+    bind(server_fd, (struct(sockaddr *)&addr, sizeof(addr)));
+    listen(server_fd, 5);
+    
+    printf("Server running on https://127.0.0.1:%d\n", port);
+
+    while(1) {
+        // accept connect from client
+        client_fd = accept(server_fd, NULL, NULL);
+>>>>>>> 2f0e4a7 (update)
         if (client_fd < 0) {
             perror("accept");
             continue;

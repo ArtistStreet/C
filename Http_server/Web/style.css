@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2f0e4a7 (update)
 body {font-family: Arial, Helvetica, sans-serif;}
 form {border: 3px solid #f1f1f1;}
 
@@ -37,8 +40,16 @@ button:hover {
 }
 
 img.avatar {
+<<<<<<< HEAD
   width: 40%;
   border-radius: 50%;
+=======
+  /* width: 40%; */
+  border-radius: 50%;
+  object-fit: cover;
+  width: 300px;
+  height: 300px;
+>>>>>>> 2f0e4a7 (update)
 }
 
 .container {
