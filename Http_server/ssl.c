@@ -8,7 +8,7 @@ SSL_CTX *init_ssl() {
     }
     
     if (SSL_CTX_use_certificate_file(ctx, "ssl/cert.pem", SSL_FILETYPE_PEM) <= 0 
-    || SSL_CTX_use_PrivateKey_file(ctx, "ssl/key", SSL_FILETYPE_PEM) <= 0 ) {
+    || SSL_CTX_use_PrivateKey_file(ctx, "ssl/key.pem", SSL_FILETYPE_PEM) <= 0 ) {
         ERR_print_errors_fp(stderr);
         exit(EXIT_FAILURE);
     }

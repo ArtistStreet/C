@@ -1,10 +1,10 @@
 # Compiler
 CC = gcc
 CFLAGS = -Wall -g
-MONGOC_FLAGS = $(shell pkg-config --cflags --libs libmongoc-1.0 libbson-1.0)
+MONGOC_FLAGS = $(shell pkg-config --cflags --libs libmongoc-1.0 libbson-1.0 -lssl -lcrypto)
 
 # Files
-SRC = $(wildcard *.c)
+SRC = main.c ssl.c user.c
 OBJ = $(SRC:.c=.o)
 TARGET = main
 
