@@ -13,8 +13,12 @@ typedef struct
 void send_file_content(SSL *ssl, const char *file_name, const char *content_type) {
     FILE *file = fopen(file_name, "rb");
 
-    // FILE *server_log = fopen("log/server.log", "a");
-
+    FILE *server_log = fopen("log/server.log", "a");
+    // printf("Debug: %s\n", server_log);
+    // printf("")
+    if (!server_log) {
+        printf("Error\n");
+    }
     if (file) {
         char header[256];
         char buffer[1024];
@@ -30,15 +34,16 @@ void send_file_content(SSL *ssl, const char *file_name, const char *content_type
 
         fclose(file);
     } else {
+        // printf("Error: Failed to open file %s\n", file_name);
         char *not_found = "HTTP/1.1 404 Not Found\r\n\r\n";
         SSL_write(ssl, not_found, strlen(not_found));
-        // fprintf(server_log, "Error: Failed to open file %s\n", file_name);
-        // fwrite(not_found, 1, strlen(not_found), server_log);
+        fprintf(server_log, "Error: Failed to open file %s\n", file_name);
+        fwrite(not_found, 1, strlen(not_found), server_log);
     }
 
-    // if (server_log) {
-        // fclose(server_log);
-    // }
+    if (server_log) {
+        fclose(server_log);
+    }
 }
 
 void handle_home(SSL *ssl) {
@@ -55,15 +60,17 @@ Route route[] = {
 };
 
 void serve_static_file(SSL *ssl, const char *url) {
+    // printf("Debug: %s\n", url);
     char file_path[256];
     
+    char *content_type = "text/plain";
     if (strcmp(url, "/") == 0) {
         snprintf(file_path, sizeof(file_path), "Web/index.html");
+        content_type = "text/html"; // Ensure correct content type for HTML
     } else {
         snprintf(file_path, sizeof(file_path), "Web%s", url);
     }
     
-    char *content_type = "text/plain";
     if (strstr(url, ".html")) {
         content_type = "text/html"; // Ensure correct content type for HTML
     } else if (strstr(url, ".css")) {
@@ -75,7 +82,8 @@ void serve_static_file(SSL *ssl, const char *url) {
     } else if (strstr(url, ".png")) {
         content_type = "image/png";
     }
-
+    fflush(stdout);
+    // printf("Debug: %s\n", content_type);
     send_file_content(ssl, file_path, content_type);
 }
 
@@ -90,7 +98,7 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
         return;
     }
     
-    // // // FILE *server_log = fopen("log/server.log", "a");
+    FILE *server_log = fopen("log/server.log", "a");
     
     char buffer[buffer_size];
     int bytes_read = SSL_read(ssl, buffer, sizeof(buffer) - 1);
@@ -102,16 +110,18 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
     }
 
     buffer[bytes_read] = '\0';
-
+    printf("debug: %s\n", buffer);
     if (strncmp(buffer, "GET ", 4) == 0) {
         
         char *start = buffer + 4; // start from 5th char
         char *end = strchr(start, ' ');
         *end = '\0';
         // printf("debug: %s\n", start);
+        log_request(client_fd, "GET", start);
         serve_static_file(ssl, start);
-    } else if (strncmp(buffer, "POST ", 5) == 0) {
-        // log_request(client_fd, "POST", css);
+    } 
+    else if (strncmp(buffer, "POST ", 5) == 0) {
+        log_request(client_fd, "POST", css);
         
         char *body = strstr(buffer, "\r\n\r\n");
         if (body) {
@@ -151,9 +161,9 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
         write(client_fd, response, strlen(response)); // Fix: send full response
     }
 
-    // if (server_log) {
-        // fclose(server_log);
-    // }
+    if (server_log) {
+        fclose(server_log);
+    }
 
     SSL_shutdown(ssl);
     SSL_free(ssl);
@@ -166,10 +176,13 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    int opt = 1;
+
     SSL_library_init(); // init ssl library
     SSL_CTX *ctx = init_ssl(); // init 
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0); // ipv4, tcp
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // reuse address
     struct sockaddr_in addr = {AF_INET, htons(port), INADDR_ANY};
     if (server_fd == -1) {
         perror("socket");

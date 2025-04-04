@@ -1,32 +1,20 @@
-# Compiler
 CC = gcc
 CFLAGS = -Wall -g
-MONGOC_FLAGS = $(shell pkg-config --cflags --libs libmongoc-1.0 libbson-1.0 -lssl -lcrypto)
-
-# Files
-SRC = main.c ssl.c user.c
+LDFLAGS = $(shell pkg-config --cflags --libs libmongoc-1.0) -lssl -lcrypto
+SRC = main.c ssl.c user_handle.c log/log.c
 OBJ = $(SRC:.c=.o)
 TARGET = main
 
-# Default arguments
-ARGS = Web/index.html Web/style.css Web/script.js
+all: $(TARGET)
 
-# Build executable
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(MONGOC_FLAGS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LDFLAGS)
 
-# Compile source files
 %.o: %.c
-	$(CC) $(CFLAGS) $(MONGOC_FLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Run program with required arguments
 run: $(TARGET)
-	@echo "Running server with files: $(ARGS)"
-	./$(TARGET) $(ARGS)
+	./$(TARGET) Web/index.html Web/script.js Web/style.css
 
-# Clean build files
 clean:
-	rm -f $(TARGET) $(OBJ)
-
-# Build and Run in one command
-all: $(TARGET) run
+	rm -f $(OBJ) $(TARGET)

@@ -10,4 +10,4 @@
 
 void handle_token(const char *name, const char *pass);
 SSL_CTX *init_ssl();
-// void log_request(int client_fd, const char *method, const char *path);
+void log_request(int client_fd, const char *method, const char *path);
