@@ -7,6 +7,8 @@
 #include <mongoc/mongoc.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 void handle_token(const char *name, const char *pass);
 SSL_CTX *init_ssl();

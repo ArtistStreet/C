@@ -110,7 +110,7 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
     }
 
     buffer[bytes_read] = '\0';
-    printf("debug: %s\n", buffer);
+    printf("debug: %s %s %s\n", html, css, js);
     if (strncmp(buffer, "GET ", 4) == 0) {
         
         char *start = buffer + 4; // start from 5th char
