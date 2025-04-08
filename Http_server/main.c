@@ -14,7 +14,7 @@ void send_file_content(SSL *ssl, const char *file_name, const char *content_type
     FILE *file = fopen(file_name, "rb");
 
     FILE *server_log = fopen("log/server.log", "a");
-    // printf("Debug: %s\n", server_log);
+    printf("Debug: %s\n", file_name);
     // printf("")
     if (!server_log) {
         printf("Error\n");
@@ -47,21 +47,26 @@ void send_file_content(SSL *ssl, const char *file_name, const char *content_type
 }
 
 void handle_home(SSL *ssl) {
-    send_file_content(ssl, "Web/index.html", "text/html");
+    // send_file_content(ssl, "Web/index.html", "text/html");
 }
 
 void handle_about(SSL *ssl) {
     send_file_content(ssl, "Web/about.html", "text/html");
 }
 
-Route route[] = {
-    {"/", handle_home},
-    {"/about", handle_about}
-};
+// Route route[] = {
+//     {"/", handle_home},
+//     {"/about", handle_about}
+// };
+
+// void process_route() {
+
+// }
 
 void serve_static_file(SSL *ssl, const char *url) {
     // printf("Debug: %s\n", url);
     char file_path[256];
+    printf("debug: %s", file_path);
     
     char *content_type = "text/plain";
     if (strcmp(url, "/") == 0) {
@@ -83,11 +88,12 @@ void serve_static_file(SSL *ssl, const char *url) {
         content_type = "image/png";
     }
     fflush(stdout);
-    // printf("Debug: %s\n", content_type);
+    printf("Debug: %s\n", file_path);
     send_file_content(ssl, file_path, content_type);
 }
 
-void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const char *css, const char *js) {
+void handle_client(u_int32_t client_fd, SSL_CTX *ctx, FileEntry *files, int count) {
+    const char *file_data = get_file_content("index.html", files, count);
     SSL *ssl = SSL_new(ctx);
     SSL_set_fd(ssl, client_fd);
 
@@ -110,7 +116,8 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
     }
 
     buffer[bytes_read] = '\0';
-    printf("debug: %s %s %s\n", html, css, js);
+    // printf("debug: %s %s %s\n", html, css, js);
+    // printf("debug: %s\n", buffer);
     if (strncmp(buffer, "GET ", 4) == 0) {
         
         char *start = buffer + 4; // start from 5th char
@@ -121,7 +128,6 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
         serve_static_file(ssl, start);
     } 
     else if (strncmp(buffer, "POST ", 5) == 0) {
-        log_request(client_fd, "POST", css);
         
         char *body = strstr(buffer, "\r\n\r\n");
         if (body) {
@@ -171,12 +177,10 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, const char *html, const ch
 }
 
 int main(int argc, char **argv) {
-    if (argc < 4) {
-        fprintf(stderr, "Usage: %s <html_file> <css_file> <js_file>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
     int opt = 1;
+    int file_count = 0;
+    FileEntry *files = load_file(argv[1], &file_count);
+    // printf("%d\n", file_count);
 
     SSL_library_init(); // init ssl library
     SSL_CTX *ctx = init_ssl(); // init 
@@ -201,7 +205,7 @@ int main(int argc, char **argv) {
             perror("accept");
             continue;
         }
-        handle_client(client_fd, ctx, argv[1], argv[2], argv[3]);
+        handle_client(client_fd, ctx, files, file_count);
     }
 
     SSL_CTX_free(ctx);

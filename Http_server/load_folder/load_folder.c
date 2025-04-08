@@ -1,9 +1,4 @@
-#include "lib.h"
-
-typedef struct {
-    char *file_name;
-    char *content;
-} FileEntry;
+#include "../lib.h"
 
 FileEntry *load_file(const char *folder_path, int *count) {
     DIR *dir = opendir(folder_path); // Open the directory
@@ -50,10 +45,29 @@ FileEntry *load_file(const char *folder_path, int *count) {
             }
             files[*count].file_name = strdup(entry->d_name); // Duplicate the file name
             files[*count].content = data; // Store the file content
+            // printf("%s", files[*count].file_name);
+            // printf("%s", files[*count].content);
             (*count)++; // Increment the file count
         } 
     }
 
     closedir(dir);
     return files;
+}
+
+const char *get_file_content(const char *file_name, FileEntry *files, int count) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(files[i].file_name, file_name) == 0) {
+            return files[i].content;
+        }
+    }
+    return NULL;
+}
+
+void free_files(FileEntry *files, int count) {
+    for (int i = 0; i < count; i++) {
+        free(files[i].file_name);
+        free(files[i].content);
+    }
+    free(files);
 }
