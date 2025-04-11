@@ -5,6 +5,12 @@
         "unistd.h": "c",
         "variant": "c",
         "lib.h": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "*.tcc": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "system_error": "cpp"
     }
 }

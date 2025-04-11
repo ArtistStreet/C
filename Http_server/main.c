@@ -9,49 +9,11 @@ typedef struct
     void (*handler)(SSL *ssl);
 } Route;
 
-// server reads index file and send content to client using socket
-void send_file_content(SSL *ssl, const char *file_name, const char *content_type) {
-    FILE *file = fopen(file_name, "rb");
-
-    FILE *server_log = fopen("log/server.log", "a");
-    printf("Debug: %s\n", file_name);
-    // printf("")
-    if (!server_log) {
-        printf("Error\n");
-    }
-    if (file) {
-        char header[256];
-        char buffer[1024];
-        size_t bytes_read;
-
-        snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n", content_type);
-
-        SSL_write(ssl, header, strlen(header));
-
-        while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-            SSL_write(ssl, buffer, (bytes_read));
-        }
-
-        fclose(file);
-    } else {
-        // printf("Error: Failed to open file %s\n", file_name);
-        char *not_found = "HTTP/1.1 404 Not Found\r\n\r\n";
-        SSL_write(ssl, not_found, strlen(not_found));
-        fprintf(server_log, "Error: Failed to open file %s\n", file_name);
-        fwrite(not_found, 1, strlen(not_found), server_log);
-    }
-
-    if (server_log) {
-        fclose(server_log);
-    }
-}
-
-void handle_home(SSL *ssl) {
-    // send_file_content(ssl, "Web/index.html", "text/html");
-}
-
-void handle_about(SSL *ssl) {
-    send_file_content(ssl, "Web/about.html", "text/html");
+void send_loaded_content(SSL *ssl, const char *content, size_t size, const char *content_type) {
+    char header[256];
+    snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n", content_type);
+    SSL_write(ssl, header, strlen(header));
+    SSL_write(ssl, content, (size));
 }
 
 // Route route[] = {
@@ -63,37 +25,7 @@ void handle_about(SSL *ssl) {
 
 // }
 
-void serve_static_file(SSL *ssl, const char *url) {
-    // printf("Debug: %s\n", url);
-    char file_path[256];
-    printf("debug: %s", file_path);
-    
-    char *content_type = "text/plain";
-    if (strcmp(url, "/") == 0) {
-        snprintf(file_path, sizeof(file_path), "Web/index.html");
-        content_type = "text/html"; // Ensure correct content type for HTML
-    } else {
-        snprintf(file_path, sizeof(file_path), "Web%s", url);
-    }
-    
-    if (strstr(url, ".html")) {
-        content_type = "text/html"; // Ensure correct content type for HTML
-    } else if (strstr(url, ".css")) {
-        content_type = "text/css";
-    } else if (strstr(url, ".js")) {
-        content_type = "application/javascript";
-    } else if (strstr(url, ".jpg")) {
-        content_type = "image/jpeg";
-    } else if (strstr(url, ".png")) {
-        content_type = "image/png";
-    }
-    fflush(stdout);
-    printf("Debug: %s\n", file_path);
-    send_file_content(ssl, file_path, content_type);
-}
-
 void handle_client(u_int32_t client_fd, SSL_CTX *ctx, FileEntry *files, int count) {
-    const char *file_data = get_file_content("index.html", files, count);
     SSL *ssl = SSL_new(ctx);
     SSL_set_fd(ssl, client_fd);
 
@@ -116,19 +48,50 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, FileEntry *files, int coun
     }
 
     buffer[bytes_read] = '\0';
-    // printf("debug: %s %s %s\n", html, css, js);
-    // printf("debug: %s\n", buffer);
+    
     if (strncmp(buffer, "GET ", 4) == 0) {
-        
         char *start = buffer + 4; // start from 5th char
         char *end = strchr(start, ' ');
         *end = '\0';
         // printf("debug: %s\n", start);
         log_request(client_fd, "GET", start);
-        serve_static_file(ssl, start);
+
+        char file_path[256];
+        // printf("debug: %s", file_path);
+    
+        char *content_type = "text/plain";
+        if (strcmp(start, "/") == 0) {
+            strcpy(file_path, "index.html");
+            content_type = "text/html";
+        } else {
+            snprintf(file_path, sizeof(file_path), "%s", start + 1); // skip the '/'
+        }
+        
+        if (strstr(start, ".html")) {
+            content_type = "text/html"; // Ensure correct content type for HTML
+        } else if (strstr(start, ".css")) {
+            content_type = "text/css";
+        } else if (strstr(start, ".js")) {
+            content_type = "application/javascript";
+        } else if (strstr(start, ".jpg")) {
+            content_type = "image/jpeg";
+        } else if (strstr(start, ".png")) {
+            content_type = "image/png";
+        }
+
+        const char *file_data = get_file_content(file_path, files, count);
+        size_t size = get_file_size(file_path, files, count);
+        if (file_data) {
+            send_loaded_content(ssl, file_data, size, content_type);
+        } else {
+            char *not_found = "HTTP/1.1 404 Not Found\r\n\r\n";
+            SSL_write(ssl, not_found, strlen(not_found));
+            if (server_log) {
+                fprintf(server_log, "404 Not Found: %s\n", file_path);
+            }
+        }
     } 
     else if (strncmp(buffer, "POST ", 5) == 0) {
-        
         char *body = strstr(buffer, "\r\n\r\n");
         if (body) {
             body += 4;
@@ -164,7 +127,7 @@ void handle_client(u_int32_t client_fd, SSL_CTX *ctx, FileEntry *files, int coun
          "Content-Type: text/plain\r\n"
          "Content-Length: 2\r\n"
          "\r\nOK");
-        write(client_fd, response, strlen(response)); // Fix: send full response
+        SSL_write(ssl, response, strlen(response)); // Fix: send full response
     }
 
     if (server_log) {

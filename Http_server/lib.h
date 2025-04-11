@@ -16,6 +16,7 @@
 typedef struct {
     char *file_name;
     char *content;
+    size_t size;
 } FileEntry;
 
 void handle_token(const char *name, const char *pass);
@@ -24,5 +25,7 @@ void log_request(int client_fd, const char *method, const char *path);
 FileEntry *load_file(const char *folder_path, int *count);
 void free_files(FileEntry *files, int count);
 const char *get_file_content(const char *file_name, FileEntry *files, int count);
+size_t get_file_size(const char *file_name, FileEntry *files, int count);
+
 
 #endif

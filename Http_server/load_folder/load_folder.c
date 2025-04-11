@@ -45,6 +45,7 @@ FileEntry *load_file(const char *folder_path, int *count) {
             }
             files[*count].file_name = strdup(entry->d_name); // Duplicate the file name
             files[*count].content = data; // Store the file content
+            files[*count].size = size; // Store the file content
             // printf("%s", files[*count].file_name);
             // printf("%s", files[*count].content);
             (*count)++; // Increment the file count
@@ -62,6 +63,15 @@ const char *get_file_content(const char *file_name, FileEntry *files, int count)
         }
     }
     return NULL;
+}
+
+size_t get_file_size(const char *file_name, FileEntry *files, int count) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(files[i].file_name, file_name) == 0) {
+            return files[i].size;
+        }
+    }
+    return 0;
 }
 
 void free_files(FileEntry *files, int count) {
