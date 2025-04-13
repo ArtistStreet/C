@@ -224,65 +224,11 @@ void send_char(Display *display, const string& utf8_char) {
 //     return result;
 // }
 
-
-vector<string> handleTelexTransform(vector<string>& buffer, Display* display) {
-    // if (buffer.size() < 2) return buffer;
-    vector<string> result;
-    string last = buffer.back();
-    auto it = telexMap.find(last);
-   
-    int cnt = 1;
-    string secondLast = buffer[buffer.size() - 2];
-    // cout << "Last: " << last << ", Second Last: " << secondLast << endl;
-
-    for (int i = buffer.size() - 2; i >= 0; --i) {
-        if (buffer[i] == last) {
-            // cout << "Last: " << last << ", Second Last: " << buffer[i] << endl;
-            for (int j = 0; j < cnt; j++) {
-                sendLeftArrow(display);
-            }
-            sendBackspace(display);
-            send_char(display, it->second);
-            result.push_back(it->second);
-            break;
-        }
-        cnt++;
-        result.push_back((buffer[i]));
-    }
-
-    reverse(result.begin(), result.end());
-    for (int i = 0; i < result.size(); i++) {
-        sendRightArrow(display);
-    }
-
-    if (cnt == buffer.size()) { // Neu khong tim thay ki tu truoc do da xuat hien thi can push lai ki tu do vao trong 
-        result.push_back(last);
-    } else { // Da xuat hien truoc do roi thi xoa ki tu cuoi cung
-        sendBackspace(display);
-    }
-
-    // for (auto &&i : result)
-    // {
-    //     cout << i << " ";
-    // }
-    cout << endl;
-
-    return result;
-}
-
 bool found = false;
 
 vector<string> handleTelexTransformW(vector<string>& buffer, Display* display, char c) {
-    // for (auto &&i : buffer)
-    // {
-    //     cout << i;
-    // }
-    // cout << endl;
     vector<string> result;
     string last = string(1, c);
-    // int cnt = 1;
-    int count = 0;
-    // bool transformed = false;
     unordered_map<string, string>::iterator it;
 
     for (int i = buffer.size() - 1; i >= 0; --i) {
@@ -290,75 +236,32 @@ vector<string> handleTelexTransformW(vector<string>& buffer, Display* display, c
             it = telexMapW.find(buffer[i]);
             if (it != telexMapW.end()) {
                 found = true;
-                count++;
                 result.push_back(it->second);
-                // cout << it->second;
-                // fflush(stdout);
-                // transformed = true;
-                // buffer[i] = it->second; // cập nhật lại buffer
-                continue;
+                break;;
             }
         }
         else {
             it = telexMap.find(last);
             if ((it != telexMap.end()) && (buffer[i] == last)) {
                 found = true;
-                count++;
                 result.push_back(it->second);
-                // cout << it->second;
-                // cout << "tim thay\n";
-                fflush(stdout);
-                // transformed = true;
-                // buffer[i] = it->second; // cập nhật lại buffer
                 break;
             }
         }
-        // cnt++;
         result.push_back(buffer[i]);
     }
 
-    // for (auto &&i : buffer)
-    // {
-    //     cout << i;
-    //     fflush(stdout);
-    // }
-    // cout << endl;
     if (found) {
         reverse(result.begin(), result.end());
-        // cout << "vao\n";
-        // if (!transformed) {
-        //     result.push_back(last);
-        // } else {
-        //     sendBackspace(display); // xoá w
-        // }
-        // cout << buffer.size();
-        // if (c == 'w') {
-        //     result.pop_back();
-        // }
-        cout << "Buffer size: " << buffer.size() << endl;
         for (int i = 0; i < buffer.size() + 1; i++) {
             sendBackspace(display);
         }
         string temp = "";
-        // for (auto &&i : buffer)
-        // {
-        //     cout << i;
-        //     fflush(stdout);
-        // }
-        // cout << " ";
-        // cout << "res ";
         for (auto &&i : result)
         {
-            // cout << i;
-            // fflush(stdout);
             temp += i;
         }
-        // cout << result.size() << " ";
         send_char(display, temp);
-        // exit(0);
-        // cout << temp;
-        // fflush(stdout);
-        buffer = result;
         return result;
     }
     return buffer;
