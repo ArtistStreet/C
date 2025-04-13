@@ -163,45 +163,34 @@ void clearWithCtrlA(Display* display) {
 }
 
 
-#include <cstdio>  // for popen, fgets
-#include <memory>  // for unique_ptr
-
 void send_char(Display *display, const string& utf8_char) {
-    // cout << "[send_char] utf8_char = \"" << utf8_char << "\"\n";
-
-    string cmd = "echo -n \"" + utf8_char + "\" | xclip -selection clipboard";
-    if (system(cmd.c_str()) != 0) {
-        cerr << "Failed to copy to clipboard\n";
+    // Dùng popen để truyền UTF-8 an toàn hơn
+    // cout << "Ki tu" <<  utf8_char;
+    FILE* pipe = popen("xclip -selection clipboard", "w");
+    if (!pipe) {
+        cerr << "Failed to open xclip for writing\n";
         return;
     }
 
-    // Đọc lại clipboard để kiểm tra nội dung
-    FILE* pipe = popen("xclip -o -selection clipboard", "r");
-    if (!pipe) {
-        cerr << "Failed to read clipboard\n";
-    } else {
-        char buffer[128];
-        string clipboardContent;
-        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-            clipboardContent += buffer;
-        }
-        pclose(pipe);
-        // cout << "[clipboard] = " << clipboardContent << endl;
-    }
+    fwrite(utf8_char.c_str(), sizeof(char), utf8_char.size(), pipe);
+    pclose(pipe);
 
-    usleep(1000); // Delay nhẹ
+    // Thêm delay nhẹ để đảm bảo xclip xong
+    // usleep(10000); // 10ms
 
-    // Simulate Ctrl+V
+    // Dán bằng cách mô phỏng Ctrl+V
     KeyCode ctrl = XKeysymToKeycode(display, XK_Control_L); 
     KeyCode v = XKeysymToKeycode(display, XK_V); 
 
-    XTestFakeKeyEvent(display, ctrl, True, 0); // Ctrl press
-    XTestFakeKeyEvent(display, v, True, 0);    // V press
-    XTestFakeKeyEvent(display, v, False, 0);   // V release
-    XTestFakeKeyEvent(display, ctrl, False, 0);// Ctrl release
+    XTestFakeKeyEvent(display, ctrl, True, 0); // Ctrl down
+    XTestFakeKeyEvent(display, v, True, 0);    // V down
+    XTestFakeKeyEvent(display, v, False, 0);   // V up
+    XTestFakeKeyEvent(display, ctrl, False, 0);// Ctrl up
 
     XFlush(display);
+    // usleep(10000); // Đợi dán xong
 }
+
 
 
 
@@ -281,57 +270,98 @@ vector<string> handleTelexTransform(vector<string>& buffer, Display* display) {
     return result;
 }
 
-vector<string> handleTelexTransformW(vector<string>& buffer, Display* display) {
-    vector<string> result;
-    string last = buffer.back();
-    int cnt = 1;
-    int count = 0;
-    bool transformed = false;
+bool found = false;
 
-    for (int i = buffer.size() - 2; i >= 0; --i) {
-        auto it = telexMapW.find(buffer[i]);
-        if (it != telexMapW.end()) {
-            count++;
-            result.push_back(it->second);
-            // transformed = true;
-            buffer[i] = it->second; // cập nhật lại buffer
-            continue;
+vector<string> handleTelexTransformW(vector<string>& buffer, Display* display, char c) {
+    // for (auto &&i : buffer)
+    // {
+    //     cout << i;
+    // }
+    // cout << endl;
+    vector<string> result;
+    string last = string(1, c);
+    // int cnt = 1;
+    int count = 0;
+    // bool transformed = false;
+    unordered_map<string, string>::iterator it;
+
+    for (int i = buffer.size() - 1; i >= 0; --i) {
+        if (c == 'w') {
+            it = telexMapW.find(buffer[i]);
+            if (it != telexMapW.end()) {
+                found = true;
+                count++;
+                result.push_back(it->second);
+                // cout << it->second;
+                // fflush(stdout);
+                // transformed = true;
+                // buffer[i] = it->second; // cập nhật lại buffer
+                continue;
+            }
         }
-        cnt++;
+        else {
+            it = telexMap.find(last);
+            if ((it != telexMap.end()) && (buffer[i] == last)) {
+                found = true;
+                count++;
+                result.push_back(it->second);
+                // cout << it->second;
+                // cout << "tim thay\n";
+                fflush(stdout);
+                // transformed = true;
+                // buffer[i] = it->second; // cập nhật lại buffer
+                break;
+            }
+        }
+        // cnt++;
         result.push_back(buffer[i]);
     }
 
-    reverse(result.begin(), result.end());
-
-    // for (int i = 0; i < result.size(); i++) {
-    //     sendRightArrow(display);
+    // for (auto &&i : buffer)
+    // {
+    //     cout << i;
+    //     fflush(stdout);
     // }
-
-    // if (!transformed) {
-    //     result.push_back(last);
-    // } else {
-    //     sendBackspace(display); // xoá w
-    // }
-    // cout << count;
-    // for (int i = 0; i < cnt; i++) {
-    //     sendLeftArrow(display);
-    // }
-    for (int i = 0; i < buffer.size(); i++) {
-        sendBackspace(display);
+    // cout << endl;
+    if (found) {
+        reverse(result.begin(), result.end());
+        // cout << "vao\n";
+        // if (!transformed) {
+        //     result.push_back(last);
+        // } else {
+        //     sendBackspace(display); // xoá w
+        // }
+        // cout << buffer.size();
+        // if (c == 'w') {
+        //     result.pop_back();
+        // }
+        cout << "Buffer size: " << buffer.size() << endl;
+        for (int i = 0; i < buffer.size() + 1; i++) {
+            sendBackspace(display);
+        }
+        string temp = "";
+        // for (auto &&i : buffer)
+        // {
+        //     cout << i;
+        //     fflush(stdout);
+        // }
+        // cout << " ";
+        // cout << "res ";
+        for (auto &&i : result)
+        {
+            // cout << i;
+            // fflush(stdout);
+            temp += i;
+        }
+        // cout << result.size() << " ";
+        send_char(display, temp);
+        // exit(0);
+        // cout << temp;
+        // fflush(stdout);
+        buffer = result;
+        return result;
     }
-    string temp = "";
-    for (auto &&i : result)
-    {
-        temp += i;
-    }
-    send_char(display, temp);
-    // if (result.size() != 1) {
-    //     send_char(display, "ươ");
-    // } else {
-    //     send_char(display, result[0]);
-    // }
-    
-   return result;
+    return buffer;
 }
 
 
@@ -370,7 +400,7 @@ int main() {
     XISelectEvents(display, root, &evmask, 1);
 
     cout << "Now running\n";
-
+    int cnt = 0;
     while (true) {
         XEvent ev; // Holds data for an event
         XNextEvent(display, &ev);
@@ -401,26 +431,36 @@ int main() {
                 // }
                 // fflush(stdout);
 
-                if (isascii(c) && isprint(c)) {
-                    buffer.push_back(string(1, c)); // Append character to the buffer
+                if (isascii(c) && isprint(c) && c != 'v') {
+                    // cout << "lan " << cnt++; 
+                    // cout << "ki tu: " << c << endl; 
+
+                    // cout << "Buffer before: ";
+                    // for (auto &&i : buffer)
+                    // {
+                    //     cout << i;
+                    // }
+                    // cout << endl;
+                  
+                    // cout << endl;
+                    
+                    // fflush(stdout);
+                    found = false;
+
+                    if (buffer.size() >= 1) {
+                        if ((telexMap.find(string(1, c)) != telexMap.end()) || (c == 'w')) { // Xu li khi khong co w
+                            buffer = handleTelexTransformW(buffer, display, c);
+                        } 
+                    }  if (found == false){
+                        cout << "k thay\n";
+                        buffer.push_back(string(1, c)); // Append character to the buffer
+                    }
                     // cout << "Buffer: ";
                     // for (auto &&i : buffer)
                     // {
                     //     cout << i;
                     // }
                     // cout << endl;
-                    
-                    // fflush(stdout);
-
-                    if (buffer.size() >= 2) {
-                        if (telexMap.find(buffer.back()) != telexMap.end()) { // Xu li khi khong co w
-                            buffer = handleTelexTransform(buffer, display);
-                        } else if (c == 'w') { // Co w
-                            // cout << 123;
-                            buffer = handleTelexTransformW(buffer, display);
-                            fflush(stdout);
-                        }
-                    }
                 }
                 XFreeEventData(display, &ev.xcookie);
             }
