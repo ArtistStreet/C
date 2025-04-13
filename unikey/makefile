@@ -1,16 +1,22 @@
-CC = g++
-CFLAGS = -Wall 
-LIBS = -lX11 -lXi -lXtst
-SRC = unikey.cpp
+CXX = g++
+CXXFLAGS = -Wall -std=c++17
+LDFLAGS = -lX11 -lXi -lXtst
+
+SRC = test.cpp map.cpp handleKeyboard.cpp
+OBJ = $(SRC:.cpp=.o)
+
 TARGET = unikey
 
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC) $(LIBS)
+$(TARGET): $(OBJ)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
-run : all 
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -f *.o $(TARGET)
+
+run: $(TARGET)
 	./$(TARGET)
-
-clean: 
-	rm -rf $(TARGET)
