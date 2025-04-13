@@ -16,7 +16,14 @@ using namespace std;
 
 vector<string> buffer; // Change buffer to a single string instead of a vector<string>
 
-std::unordered_map<string, std::string> telexMap = {
+unordered_map<string, string> telexMap = {
+    {"a", "â"},
+    {"d", "đ"},
+    {"e", "ê"},
+    {"o", "ô"}
+};
+
+unordered_map<string, string> telexMapReverse = {
     {"a", "â"},
     {"d", "đ"},
     {"e", "ê"},
@@ -29,19 +36,25 @@ unordered_map<string, string> telexMapW = {
     {"u", "ư"}, 
 };
 
-std::unordered_map<std::string, std::unordered_map<char, std::string>> accentMap = {
-    {"a", {{'s', "á"}, {'f', "à"}, {'r', "ả"}, {'x', "ã"}, {'j', "ạ"}}},
-    {"ă", {{'s', "ắ"}, {'f', "ằ"}, {'r', "ẳ"}, {'x', "ẵ"}, {'j', "ặ"}}},
-    {"â", {{'s', "ấ"}, {'f', "ầ"}, {'r', "ẩ"}, {'x', "ẫ"}, {'j', "ậ"}}},
-    {"e", {{'s', "é"}, {'f', "è"}, {'r', "ẻ"}, {'x', "ẽ"}, {'j', "ẹ"}}},
-    {"ê", {{'s', "ế"}, {'f', "ề"}, {'r', "ể"}, {'x', "ễ"}, {'j', "ệ"}}},
-    {"i", {{'s', "í"}, {'f', "ì"}, {'r', "ỉ"}, {'x', "ĩ"}, {'j', "ị"}}},
-    {"o", {{'s', "ó"}, {'f', "ò"}, {'r', "ỏ"}, {'x', "õ"}, {'j', "ọ"}}},
-    {"ô", {{'s', "ố"}, {'f', "ồ"}, {'r', "ổ"}, {'x', "ỗ"}, {'j', "ộ"}}},
-    {"ơ", {{'s', "ớ"}, {'f', "ờ"}, {'r', "ở"}, {'x', "ỡ"}, {'j', "ợ"}}},
-    {"u", {{'s', "ú"}, {'f', "ù"}, {'r', "ủ"}, {'x', "ũ"}, {'j', "ụ"}}},
-    {"ư", {{'s', "ứ"}, {'f', "ừ"}, {'r', "ử"}, {'x', "ữ"}, {'j', "ự"}}},
-    {"y", {{'s', "ý"}, {'f', "ỳ"}, {'r', "ỷ"}, {'x', "ỹ"}, {'j', "ỵ"}}},
+unordered_map<string, string> telexMapWReverse = {
+    {"a", "ă"},
+    {"o", "ơ"},
+    {"u", "ư"}, 
+};
+
+vector<unordered_map<char, string>> accentMapList = {
+    {{'s', "á"}, {'f', "à"}, {'r', "ả"}, {'x', "ã"}, {'j', "ạ"}},
+    {{'s', "ắ"}, {'f', "ằ"}, {'r', "ẳ"}, {'x', "ẵ"}, {'j', "ặ"}},
+    {{'s', "ấ"}, {'f', "ầ"}, {'r', "ẩ"}, {'x', "ẫ"}, {'j', "ậ"}},
+    {{'s', "é"}, {'f', "è"}, {'r', "ẻ"}, {'x', "ẽ"}, {'j', "ẹ"}},
+    {{'s', "ế"}, {'f', "ề"}, {'r', "ể"}, {'x', "ễ"}, {'j', "ệ"}},
+    {{'s', "í"}, {'f', "ì"}, {'r', "ỉ"}, {'x', "ĩ"}, {'j', "ị"}},
+    {{'s', "ó"}, {'f', "ò"}, {'r', "ỏ"}, {'x', "õ"}, {'j', "ọ"}},
+    {{'s', "ố"}, {'f', "ồ"}, {'r', "ổ"}, {'x', "ỗ"}, {'j', "ộ"}},
+    {{'s', "ớ"}, {'f', "ờ"}, {'r', "ở"}, {'x', "ỡ"}, {'j', "ợ"}},
+    {{'s', "ú"}, {'f', "ù"}, {'r', "ủ"}, {'x', "ũ"}, {'j', "ụ"}},
+    {{'s', "ứ"}, {'f', "ừ"}, {'r', "ử"}, {'x', "ữ"}, {'j', "ự"}},
+    {{'s', "ý"}, {'f', "ỳ"}, {'r', "ỷ"}, {'x', "ỹ"}, {'j', "ỵ"}},
 };
 
 
@@ -49,72 +62,17 @@ bool isAccentKey(char c) {
     return c == 'a' || c == 'e' || c == 'o' || c == 'w' || c == 'd';
 }
 
-const std::vector<std::string> priority = {
+bool checkDau(char c) {
+    return c == 's' or c == 'r' or c == 'j' or c == 'x' or c == 'f'; 
+}
+
+const vector<string> priority = {
     "â", "ê", "ô", "ă", "ơ", "ư", "u", "e", "a", "o", "i", "y"
 };
 
-std::vector<string> temp; 
+vector<string> temp; 
 
-std::string applyAccent(const std::string& word, char accent) {
-    fflush(stdout);
-    // cout << word;
-    for (auto &&i : temp)
-    {
-        // cout << i << " ";
-    }
-    
-    // for (int i = 0; i < buffer.size(); i++) {
-    //     cout << temp[i] << " ";
-    // }
-    std::vector<std::string> chars;
-    for (size_t i = 0; i < word.size();) {
-        unsigned char c = word[i];
-        // cout << word[i] << " ";
-        size_t len = 1;
-        if ((c & 0xE0) == 0xC0) len = 2;
-        else if ((c & 0xF0) == 0xE0) len = 3;
-        else if ((c & 0xF8) == 0xF0) len = 4;
 
-        if (i + len <= word.size()) {
-            std::string currentChar = word.substr(i, len);
-            // cout << currentChar;
-            // if (currentChar == "ư" || currentChar == "ê") {
-            //     cout << "found";
-            //     exit(0);
-            // }
-            chars.push_back(word.substr(i, len));
-        } else {
-            return word;
-        }
-        i += len;
-    }
-
-    std::vector<std::pair<std::string, int>> candidates;
-    for (int i = 0; i < chars.size(); ++i) {
-        const std::string& ch = chars[i];
-        // cout << chars[i] << " ";
-        auto it = accentMap.find(ch);
-        if (it != accentMap.end() && it->second.count(accent)) {
-            candidates.emplace_back(ch, i);
-        }
-    }
-    fflush(stdout);
-    // cout << 123;
-    for (const auto& vowel : priority) {
-        for (const auto& [ch, idx] : candidates) {
-            if (ch == vowel) {
-                chars[idx] = accentMap[ch][accent];
-
-                std::string result;
-                for (const auto& c : chars) result += c;
-                // cout << result;
-                return result;
-            }
-        }
-    }
-
-    return word;
-}
 
 char keycode_to_char(Display *display, unsigned int keycode) {
     KeySym keysym = XkbKeycodeToKeysym(display, keycode, 0, 0);
@@ -164,8 +122,6 @@ void clearWithCtrlA(Display* display) {
 
 
 void send_char(Display *display, const string& utf8_char) {
-    // Dùng popen để truyền UTF-8 an toàn hơn
-    // cout << "Ki tu" <<  utf8_char;
     FILE* pipe = popen("xclip -selection clipboard", "w");
     if (!pipe) {
         cerr << "Failed to open xclip for writing\n";
@@ -175,10 +131,8 @@ void send_char(Display *display, const string& utf8_char) {
     fwrite(utf8_char.c_str(), sizeof(char), utf8_char.size(), pipe);
     pclose(pipe);
 
-    // Thêm delay nhẹ để đảm bảo xclip xong
     // usleep(10000); // 10ms
 
-    // Dán bằng cách mô phỏng Ctrl+V
     KeyCode ctrl = XKeysymToKeycode(display, XK_Control_L); 
     KeyCode v = XKeysymToKeycode(display, XK_V); 
 
@@ -191,54 +145,42 @@ void send_char(Display *display, const string& utf8_char) {
     // usleep(10000); // Đợi dán xong
 }
 
-
-
-
-// void handleBackspace() {
-//     if (!buffer.empty()) {
-//         // Handle UTF-8 multi-byte characters
-//         unsigned char lastChar = buffer.back();
-//         size_t len = 1;
-//         if ((lastChar & 0xE0) == 0xC0) len = 2;        // 2-byte UTF-8
-//         else if ((lastChar & 0xF0) == 0xE0) len = 3;   // 3-byte UTF-8
-//         else if ((lastChar & 0xF8) == 0xF0) len = 4;   // 4-byte UTF-8
-
-//         if (buffer.size() >= len) {
-//             buffer.erase(buffer.end() - len, buffer.end());
-//         }
-//     }
-// }
-
-// std::vector<std::string> splitUTF8(const std::string& input) {
-//     std::vector<std::string> result;
-//     for (size_t i = 0; i < input.size();) {
-//         unsigned char c = input[i];
-//         size_t len = 1;
-//         if ((c & 0xE0) == 0xC0) len = 2;
-//         else if ((c & 0xF0) == 0xE0) len = 3;
-//         else if ((c & 0xF8) == 0xF0) len = 4;
-
-//         result.push_back(input.substr(i, len));
-//         i += len;
-//     }
-//     return result;
-// }
+void handleBackspace() {
+    if (!buffer.empty()) {
+        buffer.pop_back();
+    }
+}
 
 bool found = false;
 
-vector<string> handleTelexTransformW(vector<string>& buffer, Display* display, char c) {
+
+vector<string> handleTelexTransform(vector<string>& buffer, Display* display, char c) {
     vector<string> result;
     string last = string(1, c);
     unordered_map<string, string>::iterator it;
+    bool check_uo = false;
+
+    if (c == 'w') {
+        int cnt = 0;
+        for (int i = 0; i < buffer.size(); i++) {
+            if (buffer[i] == "o" or buffer[i] == "u") {
+                cnt++;
+            }
+        }
+        if (cnt == 2) {
+            check_uo = true;
+        }
+    }
 
     for (int i = buffer.size() - 1; i >= 0; --i) {
         if (c == 'w') {
             it = telexMapW.find(buffer[i]);
-            if (it != telexMapW.end()) {
+            if (it != telexMapW.end() && (check_uo || buffer.size() <= 1)) {
                 found = true;
                 result.push_back(it->second);
-                break;;
+                continue;
             }
+            check_uo = true;
         }
         else {
             it = telexMap.find(last);
@@ -253,7 +195,7 @@ vector<string> handleTelexTransformW(vector<string>& buffer, Display* display, c
 
     if (found) {
         reverse(result.begin(), result.end());
-        for (int i = 0; i < buffer.size() + 1; i++) {
+        for (int i = 0; i < result.size() + 1; i++) {
             sendBackspace(display);
         }
         string temp = "";
@@ -265,6 +207,27 @@ vector<string> handleTelexTransformW(vector<string>& buffer, Display* display, c
         return result;
     }
     return buffer;
+}
+
+vector<string> applyAccent(vector<string>& buffer, Display *display, char c) {
+    vector<string> result;
+    string last = string(1, c);
+
+    const vector<string> priority = {
+        "â", "ê", "ô", "ă", "ơ", "ư", "u", "e", "a", "o", "i", "y"
+    };
+
+    int highest = 100;
+
+    for (int i = buffer.size() - 1; i >= 0; i--) {
+        for (int j = 0; j < priority.size(); j++) {
+            if (buffer[i] == priority[j]) {
+                highest = min(highest, j);
+            }
+        }
+    }
+
+    cout << highest;
 }
 
 
@@ -297,19 +260,29 @@ int main() {
     XIEventMask evmask; // Event type
     unsigned char mask[(XI_LASTEVENT + 7) / 8] = {0}; // Create byte array ceil(XI_Lastevent / 8)
     XISetMask(mask, XI_KeyPress); // Listen only for key press events
+    XISetMask(mask, XI_FocusIn);
+    XISetMask(mask, XI_ButtonPress);
     evmask.deviceid = XIAllDevices; // Listen from all devices
     evmask.mask_len = sizeof(mask);
     evmask.mask = mask;
     XISelectEvents(display, root, &evmask, 1);
 
     cout << "Now running\n";
-    int cnt = 0;
+    // int cnt = 0;
     while (true) {
         XEvent ev; // Holds data for an event
         XNextEvent(display, &ev);
         if (ev.xcookie.type == GenericEvent && ev.xcookie.extension == opcode) { // Handle event
             XGetEventData(display, &ev.xcookie); // Get data
-            if (ev.xcookie.evtype == XI_KeyPress) { // Check if key press
+            // if (ev.xcookie.evtype == XI_FocusIn) {
+            //     buffer.clear();
+            //     cout << "[FocusIn] Reset buffer\n";
+            // }
+            if (ev.xcookie.evtype == XI_ButtonPress) {
+                buffer.clear();
+                cout << "[Mouse click] Reset buffer\n";
+            }
+            else if (ev.xcookie.evtype == XI_KeyPress) { // Check if key press
                 XIDeviceEvent* xievent = (XIDeviceEvent*)ev.xcookie.data; // Get keycode
                 char c = keycode_to_char(display, xievent->detail);
                 // cout << c;
@@ -327,23 +300,23 @@ int main() {
                 //     continue;
                 // }
 
-                // // Handle regular Backspace
-                // if (xievent->detail == XKeysymToKeycode(display, XK_BackSpace)) {
-                //     handleBackspace();
-                //     continue;
-                // }
+                // Handle regular Backspace
+                if (xievent->detail == XKeysymToKeycode(display, XK_BackSpace)) {
+                    handleBackspace();
+                    continue;
+                }
                 // fflush(stdout);
 
                 if (isascii(c) && isprint(c) && c != 'v') {
                     // cout << "lan " << cnt++; 
                     // cout << "ki tu: " << c << endl; 
 
-                    // cout << "Buffer before: ";
-                    // for (auto &&i : buffer)
-                    // {
-                    //     cout << i;
-                    // }
-                    // cout << endl;
+                    cout << "Buffer before: ";
+                    for (auto &&i : buffer)
+                    {
+                        cout << i;
+                    }
+                    cout << endl;
                   
                     // cout << endl;
                     
@@ -352,18 +325,28 @@ int main() {
 
                     if (buffer.size() >= 1) {
                         if ((telexMap.find(string(1, c)) != telexMap.end()) || (c == 'w')) { // Xu li khi khong co w
-                            buffer = handleTelexTransformW(buffer, display, c);
+                            vector<string> temp;
+                            buffer = handleTelexTransform(buffer, display, c);
+                            // for (auto &&i : temp)
+                            // {
+                            //     buffer.push_back(i);
+                            // }
+                            buffer.push_back(string(1, c));
+                            
                         } 
+                        // else if (checkDau(c)) {
+                        //     buffer = applyAccent(buffer, display, c);
+                        // }
                     }  if (found == false){
-                        cout << "k thay\n";
+                        // cout << "k thay\n";
                         buffer.push_back(string(1, c)); // Append character to the buffer
                     }
-                    // cout << "Buffer: ";
-                    // for (auto &&i : buffer)
-                    // {
-                    //     cout << i;
-                    // }
-                    // cout << endl;
+                    cout << "Buffer: ";
+                    for (auto &&i : buffer)
+                    {
+                        cout << i;
+                    }
+                    cout << endl;
                 }
                 XFreeEventData(display, &ev.xcookie);
             }
