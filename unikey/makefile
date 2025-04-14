@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -Wall -std=c++17
 LDFLAGS = -lX11 -lXi -lXtst
 
-SRC = test.cpp map.cpp handleKeyboard.cpp
+SRC = test.cpp map.cpp handleKeyboard.cpp daemon.cpp
 OBJ = $(SRC:.cpp=.o)
 
 TARGET = unikey

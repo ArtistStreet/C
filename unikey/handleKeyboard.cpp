@@ -70,14 +70,14 @@ void send_char(Display *display, const string& utf8_char) {
     XFlush(display);
 }
 
-void handleCtrlBackspace(string &buffer) {
+void handleCtrlBackspace(vector<string> &buffer) {
     // Remove the last word from the buffer
-    size_t lastSpace = buffer.find_last_of(' ');
-    if (lastSpace != string::npos) {
-        buffer.erase(lastSpace);
-    } else {
+    // size_t lastSpace = buffer.find_last_of(' ');
+    // if (lastSpace != string::npos) {
+    //     buffer.erase(lastSpace);
+    // } else {
         buffer.clear(); // Clear the entire buffer if no spaces are found
-    }
+    // }
 }
 
 void handleBackspace(vector<string>& buffer) {

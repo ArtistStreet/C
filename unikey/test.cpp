@@ -1,4 +1,5 @@
 #include "lib.h"
+#include "config.h"
 
 vector<string> buffer; // Change buffer to a single string instead of a vector<string>
 
@@ -8,17 +9,27 @@ bool isAccentKey(char c) {
 
 bool found = false;
 
+
+void handleReverseTelexTransform(vector<string> &buffer, char c) {
+    if (buffer.empty()) return ;
+
+    for (int i = buffer.size() - 1; i >= 0; i--) {
+        auto it = reverseTelexTransform.find(buffer[i]);
+        if (it != reverseTelexTransform.end()) {
+            if (c == it->second.second) {
+                buffer[i] = it->second.first;
+            }
+        }
+    }
+}
+
 vector<string> handleTelexTransform(vector<string>& buffer, Display* display, char c, bool &found) {
     vector<string> result;
     string last = string(1, c);
     int count = 0;
     unordered_map<string, string>::iterator it;
 
-    // for (int i = 0; i < (int)buffer.size(); i++) {
-    //     if (buffer[i] == "u" or buffer[i] == "o") {
-    //         count++;
-    //     }
-    // }
+    handleReverseTelexTransform(buffer, c);
 
     for (int i = (int)buffer.size() - 1; i >= 0; --i) {
         if (c == 'w') {
@@ -45,6 +56,7 @@ vector<string> handleTelexTransform(vector<string>& buffer, Display* display, ch
 
     if (found) {
         reverse(result.begin(), result.end());
+        // result.pop_back();
         for (int i = 0; i < (int)buffer.size() + 1; i++) {
             sendBackspace(display);
         }
@@ -52,8 +64,10 @@ vector<string> handleTelexTransform(vector<string>& buffer, Display* display, ch
         if (result[result.size() - 1] == "ă" and result[result.size() - 2] == "ư") {
             result[result.size() - 1] = "a";
         }
+        cout << "DEBUG ";
         for (auto &&i : result)
         {
+            cout << i << " "; 
             temp += i;
         }
         send_char(display, temp);
@@ -67,6 +81,29 @@ bool isXJSRF(const char c) {
 }
 
 bool foundXJSRF = false;
+
+bool updateTone(vector<string>& buffer, char newTone,
+    const unordered_map<string, unordered_map<char, string>>& accentMap,
+    const unordered_map<string, pair<string, char>>& reverseAccentMap) {
+    for (int i = buffer.size() - 1; i >= 0; --i) {
+        auto it = reverseAccentMap.find(buffer[i]);
+        if (it != reverseAccentMap.end()) {
+            const string& base = it->second.first;
+
+            auto accentIt = accentMap.find(base);
+            if (accentIt != accentMap.end()) {
+                auto toneIt = accentIt->second.find(newTone);
+                if (toneIt != accentIt->second.end()) {
+                    buffer[i] = toneIt->second;
+                    cout << "Buffer[i] " << buffer[i] << endl;
+                    // return buffer;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 
 bool applyAccentAtIndex(vector<string>& buffer, int index, char c,
     const unordered_map<string, unordered_map<char, string>>& accentMap) {
@@ -83,38 +120,38 @@ bool applyAccentAtIndex(vector<string>& buffer, int index, char c,
     return false;
 }
 
-vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c) {
-    vector<string> result;
-    string last = string(1, c);
-    int8_t countUTF = 0, index = 0;
-    bool foundChar = false;
+unordered_map<string, pair<string, char>> reverseAccentMap;
 
-    for (int i = 0; i < (int)buffer.size(); i++) { // If found utf8
-        const string& s = buffer[i];
-        
-        if ((unsigned char)s[0] > 127) {
+
+vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c, bool &found) {
+    int8_t countUTF = 0, index = 0;
+    found = false;
+
+    if (!updateTone(buffer, c, accentMap, reverseAccentMap)) {
+        for (int i = 0; i < (int)buffer.size(); i++) { // If found utf8
+            const string& s = buffer[i];
+            
+            if ((unsigned char)s[0] > 127) {
+                for (int j = 0; j < (int)priority.size(); j++) {
+                    if (buffer[i] == priority[j]){
+                        found = true;
+                        countUTF++;
+                        index = i;
+                        cout << "FOUND " << buffer[i];
+                        continue;
+                    }
+                }
+            }
             for (int j = 0; j < (int)priority.size(); j++) {
                 if (buffer[i] == priority[j]){
-                    foundChar = true;
-                    countUTF++;
-                    index = i;
-                    cout << "FOUND " << buffer[i];
+                    found = true;
+                    cout << "FOUND " << buffer[i] << endl;
                     continue;
                 }
             }
         }
-        for (int j = 0; j < (int)priority.size(); j++) {
-            if (buffer[i] == priority[j]){
-                foundChar = true;
-                countUTF++;
-                index = i;
-                cout << "FOUND " << buffer[i];
-                continue;
-            }
-        }
     }
-
-    if (foundChar) {
+    if (found) {
         if (countUTF == 0) {
             if ((int)buffer.size() <= 2) {
                 for (int i = 0; i < 2; i++) {
@@ -128,7 +165,6 @@ vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c) {
                 for (int i = (int)buffer.size() / 2 - 1; i < (int)buffer.size(); i++) {
                     if (applyAccentAtIndex(buffer, i, c, accentMap)) {
                         cout << "Vao\n";
-                        fflush(stdout);
                         foundXJSRF = true;
                         break;
                     }
@@ -148,7 +184,6 @@ vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c) {
             if (it != accentMap.end()) {
                 auto tranform = it->second.find(c);
                 if (tranform != it->second.end()) {
-                    // result.push_back(tranform->second);
                     buffer[index] = tranform->second;
                     foundXJSRF = true;
                 }
@@ -156,7 +191,7 @@ vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c) {
         } else {
     
         }
-    
+        cout << "Buffer size " << buffer.size() << endl; 
         for (int i = 0; i < (int)buffer.size() + 1; i++) {
             sendBackspace(display);
         }
@@ -167,7 +202,23 @@ vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c) {
             // cout << i;
             temp += i;
         }
-        cout << endl;
+        // cout << endl;
+        // cout << "Temp" << temp << endl;
+        
+        send_char(display, temp);
+    }
+    else if (updateTone(buffer, c, accentMap, reverseAccentMap)) {
+        found = true;
+        for (int i = 0; i < (int)buffer.size() + 1; i++) {
+            sendBackspace(display);
+        }
+        string temp = "";
+        for (auto &&i : buffer)
+        {
+            // cout << i;
+            temp += i;
+        }
+        // cout << endl;
         // cout << "Temp" << temp << endl;
         
         send_char(display, temp);
@@ -176,7 +227,6 @@ vector<string> handleXJSRF(vector<string> &buffer, Display *display, char c) {
     return buffer;
 }
 
-unordered_map<string, pair<string, char>> reverseAccentMap;
 
 void buildReverseAccentMap(
     const unordered_map<string, unordered_map<char, string>>& accentMap,
@@ -189,8 +239,32 @@ void buildReverseAccentMap(
     }
 }
 
+bool isEnglish = false;
+bool modeSwitchPressed = false;
+
+// void daemonize() {
+//     pid_t pid = fork();
+
+//     if (pid < 0) exit(EXIT_FAILURE); // fork lỗi
+//     if (pid > 0) exit(EXIT_SUCCESS); // thoát tiến trình cha
+
+//     setsid(); // tạo session mới
+//     umask(0); // bỏ hạn chế quyền
+//     chdir("/"); // chuyển về root directory
+
+//     // Đóng tất cả descriptor
+//     close(STDIN_FILENO);
+//     close(STDOUT_FILENO);
+//     close(STDERR_FILENO);
+// }
 
 int main() {
+    // loadConfig("config.ini");
+    // if (!getConfigBool("enabled")) return 0;
+    daemonize();
+    // if (getConfigBool("show_notification")) {
+    //     system("notify-send 'Gõ tiếng Việt đang chạy ngầm'");
+    // }
     Display *display = XOpenDisplay(nullptr); // X11
     if (!display) {
         cerr << "Cannot open display. Ensure X server is running.\n";
@@ -219,14 +293,6 @@ int main() {
 
     cout << "Now running\n";
     buildReverseAccentMap(accentMap, reverseAccentMap);
-    // for (const auto& [composedChar, baseAndTone] : reverseAccentMap) {
-    //     const string& base = baseAndTone.first;
-    //     char tone = baseAndTone.second;
-    //     cout << "Composed: " << composedChar
-    //          << " => Base: " << base
-    //          << ", Tone: " << tone << endl;
-    // }
-    
     int cnt = 0;
     int fixBackspace = 0;
     while (true) {
@@ -234,31 +300,65 @@ int main() {
         XNextEvent(display, &ev);
         if (ev.xcookie.type == GenericEvent && ev.xcookie.extension == opcode) { // Handle event
             XGetEventData(display, &ev.xcookie); // Get data
-            // if (ev.xcookie.evtype == XI_FocusIn) {
-            //     buffer.clear();
-            //     cout << "[FocusIn] Reset buffer\n";
-            // }
-             if (ev.xcookie.evtype == XI_ButtonPress) {
+            if (ev.xcookie.evtype == XI_FocusIn) {
                 buffer.clear();
-                cout << "[Mouse click] Reset buffer\n";
+                cout << "[FocusIn] Reset buffer\n";
             }
-            else if (ev.xcookie.evtype == XI_KeyPress) { // Check if key press
+            if (ev.xcookie.evtype == XI_ButtonPress) {
+                buffer.clear();
+                cout << "[Button Press] Reset buffer\n";
+            }
+            if (ev.xcookie.evtype == XI_KeyPress) { // Check if key press
                 XIDeviceEvent* xievent = (XIDeviceEvent*)ev.xcookie.data; // Get keycode
-                char c = keycode_to_char(display, xievent->detail);
 
-                // Check if space is pressed
-                if (xievent->detail == XKeysymToKeycode(display, XK_space)) {
+                KeySym keysym = XkbKeycodeToKeysym(display, xievent->detail, 0, 0);
+                bool isCtrl  = xievent->mods.effective & ControlMask;
+
+                // Space or Ctrl + Backspace
+                if (isCtrl && keysym == XK_BackSpace || (xievent->detail == XKeysymToKeycode(display, XK_space))) {
                     cnt = 0;
                     buffer.clear();
                     continue;
                 }
 
-                // Check if Ctrl + Backspace is pressed
-                // if (xievent->detail == XKeysymToKeycode(display, XK_BackSpace) &&
-                //     (xievent->mods.effective & ControlMask)) {
-                //     handleCtrlBackspace(buffer); // Handle Ctrl + Backspace
-                //     continue;
-                // }
+                // Switch mode
+                if (isCtrl && xievent->detail == XKeysymToKeycode(display, XK_Shift_L)) {
+                    cout << (!isEnglish ? "English Mode\n" : "Vietnamese Mode\n");
+                    isEnglish = !isEnglish;
+                    cnt = 0;
+                    buffer.clear();
+                    continue;
+                }
+
+                // Ctrl
+                if (xievent->mods.effective & ControlMask) {
+                    cout << "Ctrl" << endl;
+                    continue;
+                }
+
+                // Alt
+                if (xievent->mods.effective & Mod1Mask) {
+                    cout << "Alt" << endl;
+                    continue;
+                }
+
+                // Shift
+                if (xievent->mods.effective & ShiftMask) {
+                    cout << "Shift" << endl;
+                    continue;
+                }
+               
+                // Win 
+                if (xievent->mods.effective & Mod4Mask) {
+                    cout << "Win" << endl;
+                    continue;
+                }
+
+                // Caplock 
+                if (xievent->mods.effective & LockMask) {
+                    cout << "Caps" << endl;
+                    continue;
+                }
 
                 // Handle regular Backspace
                 if (xievent->detail == XKeysymToKeycode(display, XK_BackSpace)) {
@@ -267,8 +367,11 @@ int main() {
                     continue;
                 }
 
-                if (isascii(c) && isprint(c) && c != 'v') {
-                    cout << "Lan " << cnt++ << endl; 
+                char c = keycode_to_char(display, xievent->detail);
+
+                if (isascii(c) && isprint(c) && isEnglish == false) {
+                    cout << "O day\n";
+                    cout << "Lan " << ++cnt << endl; 
                     cout << "Ki tu: " << c << endl; 
 
                     cout << "Buffer before: ";
@@ -277,26 +380,33 @@ int main() {
                         cout << i;
                     }
                     cout << endl;
-                    found = false;
-                    foundXJSRF = false;
+                    bool foundBs = false;
 
                     if ((int)buffer.size() >= 1) {
                         if ((telexMap.find(string(1, c)) != telexMap.end()) || (c == 'w')) { // Xu li khi khong co w
-                            bool foundBs = false;
                             buffer = handleTelexTransform(buffer, display, c, foundBs);
                             if (foundBs)
                                 fixBackspace = (int)buffer.size();
                         } 
                         else if (isXJSRF(c)) {
-                            buffer = handleXJSRF(buffer, display, c);
+                            buffer = handleXJSRF(buffer, display, c, foundBs);
+                            if (foundBs){
+                                fixBackspace = (int)buffer.size();
+                            }
                         }
-                    }  if (found == false && foundXJSRF == false){
+                    }  
+                    if (foundBs == false) {
+                        // cout << "FOUND \n"; 
                         buffer.push_back(string(1, c)); // Append character to the buffer
                     }
-                    for (int i = 0; i < fixBackspace; i++) {
-                        buffer.push_back("~");
-                    }
+
+                    cout << "FIX " << fixBackspace << endl;
+                    if (fixBackspace) 
+                        for (int i = 0; i < fixBackspace + 1; i++) {
+                            buffer.push_back("~");
+                        }
                     fixBackspace = 0;
+
                     cout << "Buffer: ";
                     for (auto &&i : buffer)
                     {
