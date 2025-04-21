@@ -1,4 +1,4 @@
-#include "lib.h"
+#include "../lib.h"
 
 void daemonize() {
     pid_t pid = fork();

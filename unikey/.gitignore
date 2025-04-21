@@ -1,5 +1,3 @@
-note.txt
-map.o
-test.o
-handleKeyboard.o
-run
+rewrite_unikey
+unikey.cpp
+typescript

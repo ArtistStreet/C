@@ -1,5 +1,5 @@
 #include "config.h"
-#include "lib.h"
+#include "../lib.h"
 #include <fstream>
 #include <unordered_map>
 
