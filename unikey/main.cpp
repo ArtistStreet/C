@@ -120,7 +120,6 @@ int main() {
     evmask.mask = mask;
     XISelectEvents(display, root, &evmask, 1);
 
-    // cout << "Now running\n";
     cout << "\033[0;36m<Welcome to UnikeyAtHome>\033[0m\n"
     "\033[1;34m      \\\n"
     "      /\\_/\\\n"
